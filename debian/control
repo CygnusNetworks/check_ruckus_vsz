@@ -1,0 +1,14 @@
+Source: check-ruckus-vsz
+Section: python
+Priority: optional
+Maintainer: Lukas Schauer <l.schauer@cygnusnetworks.de>
+Build-Depends: debhelper (>= 9), python-all, python-setuptools
+Standards-Version: 3.9.6
+X-Python-Version: >=2.7
+
+Package: check-ruckus-vsz
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Ruckus SCG Nagios check
+ Nagios/Icinga Plugin for Ruckus SCG systems using SNMP to query the device.%
+
