@@ -222,7 +222,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
 			_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
 
-			scgap_hostname = self.config_parser.get(self.args.host, 'scgap_hostname_format').format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts)
+			scgap_hostname = self.config_parser.get(self.args.host, 'scgap_hostname_format').format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
 			_log.debug("Device %s AP %s (generated) hostname is %s", self.args.host, scgap_mac, scgap_hostname)
 
 			scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
