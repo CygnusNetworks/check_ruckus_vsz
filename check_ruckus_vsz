@@ -26,6 +26,7 @@ class RUCKUSVSZSummary(nagiosplugin.Summary):
 		summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
 		summary += 'DISK:(free %.1f / %.1f GB -- %.1f%%) ' % (results['data_free'].metric.value, results['data_size'].metric.value, results['data_free_percent'].metric.value)
 		summary += 'MEM:(free %.1f / %.1f GB -- %.1f%%) ' % (results['mem_free'].metric.value, results['mem_size'].metric.value, results['mem_free_percent'].metric.value)
+		summary += 'LOAD:(1min %.2f, 5min %.2f, 15min %.2f) ' % (results['load_1min'].metric.value, results['load_5min'].metric.value, results['load_15min'].metric.value)
 		return summary
 
 	def problem(self, results):
@@ -139,6 +140,15 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		stats_tx_retry = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxRetry.0").get_value()
 		_log.debug("Device %s number of packets retried to transmit is %d", self.args.host, stats_tx_retry)
 		yield nagiosplugin.Metric('stats_tx_retry', stats_tx_retry)
+
+		# load
+		load_1min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.1").get_value())
+		load_5min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.2").get_value())
+		load_15min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.3").get_value())
+		_log.debug("Device %s load is %.2f, %.2f, %.2f", self.args.host, load_1min, load_5min, load_15min)
+		yield nagiosplugin.Metric('load_1min', load_1min)
+		yield nagiosplugin.Metric('load_5min', load_5min)
+		yield nagiosplugin.Metric('load_15min', load_15min)
 
 		# storage
 		hrstoragetable_varbinds = self.snmpclient.gettable("HOST-RESOURCES-MIB::hrStorageTable")
@@ -273,6 +283,10 @@ def main():
 		scgap_group_regex=".*",
 		data_free_min_warn=40, data_free_min_crit=30,
 		mem_free_min_warn=4, mem_free_min_crit=2,
+
+		load_1min_max_warn=5.0, load_1min_max_crit=10.0,
+		load_5min_max_warn=4.0, load_5min_max_crit=6.0,
+		load_15min_max_warn=3.0, load_15min_max_crit=4.0,
 	)
 	config_defaults = {'general': {}, args.host: device_defaults}
 
@@ -303,6 +317,16 @@ def main():
 	check.add(PerformanceContext('stats_tx_multicast', uom='c'))
 	check.add(PerformanceContext('stats_tx_fail', uom='c'))
 	check.add(PerformanceContext('stats_tx_retry', uom='c'))
+
+	check.add(nagiosplugin.ScalarContext('load_1min',
+														warning='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_warn')),
+														critical='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_crit'))))
+	check.add(nagiosplugin.ScalarContext('load_5min',
+														warning='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_warn')),
+														critical='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_crit'))))
+	check.add(nagiosplugin.ScalarContext('load_15min',
+														warning='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_warn')),
+														critical='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_crit'))))
 
 	check.add(PerformanceContext('data_size'))
 	check.add(nagiosplugin.ScalarContext('data_free', 
