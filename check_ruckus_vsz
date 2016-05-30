@@ -142,9 +142,9 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		yield nagiosplugin.Metric('stats_tx_retry', stats_tx_retry)
 
 		# load
-		load_1min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.1").get_value())
-		load_5min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.2").get_value())
-		load_15min = float(self.snmpclient.get("UCD-SNMP-MIB::laLoad.3").get_value())
+		load_1min = float(str(self.snmpclient.get("UCD-SNMP-MIB::laLoad.1").get_value()))
+		load_5min = float(str(self.snmpclient.get("UCD-SNMP-MIB::laLoad.2").get_value()))
+		load_15min = float(str(self.snmpclient.get("UCD-SNMP-MIB::laLoad.3").get_value()))
 		_log.debug("Device %s load is %.2f, %.2f, %.2f", self.args.host, load_1min, load_5min, load_15min)
 		yield nagiosplugin.Metric('load_1min', load_1min)
 		yield nagiosplugin.Metric('load_5min', load_5min)
