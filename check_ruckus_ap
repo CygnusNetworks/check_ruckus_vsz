@@ -1,0 +1,212 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import logging
+import os
+
+import configparser
+import nagiosplugin
+import nagiosplugin.result
+import nagiosplugin.state
+
+import ruckus_vsz_snmp
+import ruckus_vsz_snmp.snmpclient
+
+MIB_PATH = os.path.realpath(os.path.dirname(ruckus_vsz_snmp.__file__))
+
+_log = logging.getLogger('nagiosplugin')
+
+
+class RUCKUSAPSummary(nagiosplugin.Summary):
+	def ok(self, results):
+		summary = ''
+		summary += '%d stations connected (%.2f GB Received, %.2f GB Transmitted) ' % (results['num_sta'].metric.value, results['stats_rx_bytes'].metric.value / pow(1024, 3), results['stats_tx_bytes'].metric.value / pow(1024, 3))
+		summary += 'INFO:(location %s, description %s) ' % (results['location'].metric.value or 'undefined', results['description'].metric.value or 'undefined')
+		summary += 'DEVICE:(model %s, firmware %s, serial %s) ' % (results['model'].metric.value, results['firmware'].metric.value, results['serial'].metric.value)
+		return summary
+
+	def problem(self, results):
+		return '{0} - {1}'.format(results.first_significant, self.ok(results))
+
+
+class PerformanceContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
+	def __init__(self, name, fmt_metric='{name} is {valueunit}', uom=None, result_cls=nagiosplugin.result.Result):  # pylint: disable=too-many-arguments
+		self.uom = uom
+		super(PerformanceContext, self).__init__(name, fmt_metric, result_cls)
+
+	def performance(self, metric, resource):
+		return nagiosplugin.performance.Performance(metric.name, metric.value, uom=self.uom)
+
+	def evaluate(self, metric, resource):
+		return self.result_cls(nagiosplugin.state.Ok, None, metric)
+
+
+class BoolContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
+	def __init__(self, name, ok_text=None, crit_text=None, fmt_metric='{name} is {valueunit}', result_cls=nagiosplugin.result.Result):  # pylint: disable=too-many-arguments
+		self.ok_text = ok_text
+		self.crit_text = crit_text
+		super(BoolContext, self).__init__(name, fmt_metric, result_cls)
+
+	def evaluate(self, metric, resource):
+		if metric.value:
+			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
+		else:
+			return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
+
+
+class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
+	def __init__(self, name, ok_text=None, warn_text=None, fmt_metric='{name} is {valueunit}', result_cls=nagiosplugin.result.Result):  # pylint: disable=too-many-arguments
+		self.ok_text = ok_text
+		self.warn_text = warn_text
+		super(BoolContextWarning, self).__init__(name, fmt_metric, result_cls)
+
+	def evaluate(self, metric, resource):
+		if metric.value:
+			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
+		else:
+			return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
+
+
+class SNMPContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
+	def evaluate(self, metric, resource):
+		if metric.value["status"]:
+			return self.result_cls(nagiosplugin.state.Ok, None, metric)
+		else:
+			return self.result_cls(nagiosplugin.state.Critical, "Unreachable - %s" % metric.value["error_indication"], metric)
+
+
+class RUCKUSAP(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
+	def __init__(self, args, config_parser):
+		self.args = args
+		self.config_parser = config_parser
+		ruckus_vsz_snmp.snmpclient.add_mib_path(MIB_PATH)
+		self.snmpclient = None
+
+	def probe(self):  # pylint: disable=too-many-locals
+		_log.debug("Probing Ruckus SCG device %s through SNMP", self.args.host)
+		self.snmpclient = ruckus_vsz_snmp.snmpclient.SnmpClient(self.args.host, ruckus_vsz_snmp.snmpclient.snmp_auth_data_v2c(community=self.args.community), timeout=self.args.snmp_timeout, retries=self.args.retries)
+
+		if not self.snmpclient.alive:
+			_log.warn("Device is not reachable through SNMP with error %s", self.snmpclient.error_status)
+			yield nagiosplugin.Metric('reachable', dict(status=self.snmpclient.alive, error_indication=self.snmpclient.error_indication, error_status=self.snmpclient.error_status, error_varbinds=self.snmpclient.error_varbinds))
+			return
+
+		_log.debug("Queried Ruckus SCG device %s through SNMP - device is reachable", self.args.host)
+		yield nagiosplugin.Metric('reachable', dict(status=True))
+		_log.debug("Found Sysname %s and sysdescr %s", self.snmpclient.sysname, self.snmpclient.sysdescr)
+
+		if not str(self.snmpclient.sysdescr).startswith("SmartCell Gateway"):
+			raise nagiosplugin.CheckError("Device is not a Ruckus SCG device - System description is %s" % self.snmpclient.sysdescr)
+
+		_log.debug("Starting SNMP polling of host %s", self.args.host)
+
+		oid_suffix = '6.' + '.'.join(str(int(x, 16)) for x in self.args.scgap.split(':'))
+
+		_log.debug(oid_suffix)
+
+		# wlan stats
+		num_sta = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s" % oid_suffix).get_value()
+		_log.debug("AP %s number of stations is %d", self.args.scgap, num_sta)
+		yield nagiosplugin.Metric('num_sta', num_sta)
+
+		stats_rx_bytes = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPRXBytes.%s" % oid_suffix).get_value()
+		_log.debug("AP %s number of received bytes is %d", self.args.scgap, stats_rx_bytes)
+		yield nagiosplugin.Metric('stats_rx_bytes', stats_rx_bytes)
+
+		stats_tx_bytes = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTXBytes.%s" % oid_suffix).get_value()
+		_log.debug("AP %s number of sent bytes is %d", self.args.scgap, stats_tx_bytes)
+		yield nagiosplugin.Metric('stats_tx_bytes', stats_tx_bytes)
+
+		# device status
+		scgap_connstatus = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s" % oid_suffix).get_value()
+		_log.debug("AP %s connection status is %s", self.args.scgap, scgap_connstatus)
+		yield nagiosplugin.Metric('connected', scgap_connstatus == 'Connect')
+
+		scgap_configstatus = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConfigStatus.%s" % oid_suffix).get_value()
+		_log.debug("AP %s config status is %s", self.args.scgap, scgap_configstatus)
+		yield nagiosplugin.Metric('configured', scgap_configstatus == 'Up-to-date')
+
+		sysuptime = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPUptime.%s" % oid_suffix)
+		yield nagiosplugin.Metric("sysuptime", int(sysuptime.get_value() / 100 / 60))
+
+		# device info
+		scgap_fwversion = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPFWversion.%s" % oid_suffix).get_value()
+		_log.debug("AP %s firmware version is %s", self.args.scgap, scgap_fwversion)
+		yield nagiosplugin.Metric('firmware', scgap_fwversion)
+
+		scgap_model = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s" % oid_suffix).get_value()
+		_log.debug("AP %s model is %s", self.args.scgap, scgap_model)
+		yield nagiosplugin.Metric('model', scgap_model)
+
+		scgap_serial = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPSerial.%s" % oid_suffix).get_value()
+		_log.debug("AP %s serial is %s", self.args.scgap, scgap_serial)
+		yield nagiosplugin.Metric('serial', scgap_serial)
+
+		scgap_location = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPLocation.%s" % oid_suffix).get_value()
+		_log.debug("AP %s location is %s", self.args.scgap, scgap_location)
+		yield nagiosplugin.Metric('location', scgap_location)
+
+		scgap_description = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPDescription.%s" % oid_suffix).get_value()
+		_log.debug("AP %s description is %s", self.args.scgap, scgap_description)
+		yield nagiosplugin.Metric('description', scgap_description)
+
+
+@nagiosplugin.guarded
+def main():
+	argp = argparse.ArgumentParser()
+	argp.add_argument('-v', '--verbose', action='count', default=0)
+	argp.add_argument('-c', '--config', help='config file', default='/etc/check_ruckus_vsz.conf')
+	argp.add_argument('-C', '--community', help='SNMP Community', default='public')
+	argp.add_argument('-H', '--host', help='Hostname or network address to check', required=True)
+	argp.add_argument('-t', '--timeout', help='Check timeout', type=int, default=30)
+	argp.add_argument('-s', '--snmp-timeout', help='SNMP timeout', dest='snmp_timeout', type=int, default=2)
+	argp.add_argument('-r', '--retries', help='SNMP retries', type=int, default=3)
+	argp.add_argument('-a', '--scgap', help='AP mac address (format: AA:BB:CC:DD:EE:FF)', required=True)
+	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
+	args = argp.parse_args()
+
+	if not args.scgap:
+		raise Exception("AP mac address is required")
+
+	device_defaults = dict(
+	)
+	config_defaults = {'general': {}, args.host: device_defaults}
+
+	config_parser = configparser.ConfigParser(config_defaults)
+	config_parser.read(args.config)
+
+	if args.host not in config_parser.sections():
+		config_parser.add_section(args.host)
+
+	for key, value in device_defaults.items():
+		if not config_parser.has_option(args.host, key):
+			config_parser.set(args.host, key, str(value))
+
+	check = nagiosplugin.Check(RUCKUSAP(args, config_parser))
+	check.add(SNMPContext('reachable'))
+
+	# wlan stats
+	check.add(PerformanceContext('num_sta'))
+	check.add(PerformanceContext('stats_rx_bytes', uom='c'))
+	check.add(PerformanceContext('stats_tx_bytes', uom='c'))
+
+	# device status
+	check.add(BoolContext('connected', crit_text='Disconnected'))
+	check.add(BoolContextWarning('configured', warn_text='Config is not up to date'))
+	check.add(nagiosplugin.ScalarContext('sysuptime', warning='@%i:%i' % (0, args.uptime)))
+
+	# device info
+	check.add(nagiosplugin.Context('firmware'))
+	check.add(nagiosplugin.Context('model'))
+	check.add(nagiosplugin.Context('serial'))
+	check.add(nagiosplugin.Context('location'))
+	check.add(nagiosplugin.Context('description'))
+
+	# summary
+	check.add(RUCKUSAPSummary())
+
+	check.main(args.verbose, timeout=args.timeout)
+
+if __name__ == "__main__":
+	main()

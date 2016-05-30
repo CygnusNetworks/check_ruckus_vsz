@@ -1,1 +1,3 @@
 /usr/bin/check_ruckus_vsz /usr/lib/nagios/plugins/check_ruckus_vsz
+/usr/bin/check_ruckus_ap /usr/lib/nagios/plugins/check_ruckus_ap
+

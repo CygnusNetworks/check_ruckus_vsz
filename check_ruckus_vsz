@@ -4,6 +4,7 @@
 import argparse
 import logging
 import os
+import re
 
 import configparser
 import ipaddr
@@ -19,19 +20,14 @@ MIB_PATH = os.path.realpath(os.path.dirname(ruckus_vsz_snmp.__file__))
 _log = logging.getLogger('nagiosplugin')
 
 
-#class RUCKUSVSZSummary(nagiosplugin.Summary):
-#	def ok(self, results):
-#		summary = ''
-#		summary += '%s - ' % (results['unit_type'].metric.value)
-#		summary += 'BATTERY:(capacity %d%%, temperature %d C, runtime %d minutes) ' % (results['battery_capacity'].metric.value, results['battery_temperature'].metric.value, results['battery_run_time_remaining'].metric.value / 60.0)
-#		summary += 'INPUT:(voltage %d V, frequency %d Hz) ' % (results['input_voltage'].metric.value, results['input_frequency'].metric.value)
-#		summary += 'OUTPUT:(voltage %d V, frequency %d Hz, load %d%%) ' % (results['output_voltage'].metric.value, results['output_frequency'].metric.value, results['output_load'].metric.value)
-#		summary += 'DIAGNOSTICS:(date: %s, result: %s) ' % (results['diagnostics_date'].metric.value, results['diagnostics_result'].metric.value)
-#		summary += 'LAST EVENT:%s' % (results['input_fail_cause'].metric.value)
-#		return summary
-#
-#	def problem(self, results):
-#		return '{0} - {1}'.format(results.first_significant, self.ok(results))
+class RUCKUSVSZSummary(nagiosplugin.Summary):
+	def ok(self, results):
+		summary = '%d stations connected ' % (results['num_sta'].metric.value)
+		summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
+		return summary
+
+	def problem(self, results):
+		return '{0} - {1}'.format(results.first_significant, self.ok(results))
 
 
 class PerformanceContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
@@ -72,38 +68,6 @@ class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
 			return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
 
 
-class ElementContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
-	def __init__(self, name, ok_text=None, warn_text=None, crit_text=None, unknown_text=None, ok_values=None, warn_values=None, crit_values=None, default_state=None, fmt_metric='{name} is {valueunit}', result_cls=nagiosplugin.result.Result):  # pylint: disable=too-many-arguments
-		self.ok_text = ok_text
-		self.warn_text = warn_text
-		self.crit_text = crit_text
-		self.ok_values = ok_values or []
-		self.warn_values = warn_values or []
-		self.crit_values = crit_values or []
-		self.default_state = default_state or nagiosplugin.state.Unknown
-
-		if self.default_state == nagiosplugin.state.Ok:
-			self.unknown_text = self.ok_text
-		elif self.default_state == nagiosplugin.state.Warn:
-			self.unknown_text = self.warn_text
-		elif self.default_state == nagiosplugin.state.Critical:
-			self.unknown_text = self.crit_text
-		else:
-			self.unknown_text = unknown_text
-
-		super(ElementContext, self).__init__(name, fmt_metric, result_cls)
-
-	def evaluate(self, metric, resource):
-		if metric.value in self.ok_values:
-			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
-		elif metric.value in self.warn_values:
-			return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
-		elif metric.value in self.crit_values:
-			return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
-		else:
-			return self.result_cls(self.default_state, self.unknown_text, metric)
-
-
 class SNMPContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
 	def evaluate(self, metric, resource):
 		if metric.value["status"]:
@@ -113,8 +77,9 @@ class SNMPContext(nagiosplugin.Context):  # pylint: disable=too-few-public-metho
 
 
 class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
-	def __init__(self, args):
+	def __init__(self, args, config_parser):
 		self.args = args
+		self.config_parser = config_parser
 		ruckus_vsz_snmp.snmpclient.add_mib_path(MIB_PATH)
 		self.snmpclient = None
 
@@ -138,15 +103,6 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 		sysuptime = self.snmpclient.get("SNMPv2-MIB::sysUpTime.0")
 		yield nagiosplugin.Metric("sysuptime", int(sysuptime.get_value() / 100 / 60))
-
-		# device
-		num_ap = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsNumAP.0").get_value()
-		_log.debug("Device %s number of accesspoints is %d", self.args.host, num_ap)
-		yield nagiosplugin.Metric('num_ap', num_ap)
-
-		num_sta = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsNumSta.0").get_value()
-		_log.debug("Device %s number of stations is %d", self.args.host, num_sta)
-		yield nagiosplugin.Metric('num_sta', num_sta)
 
 		# stats rx
 		stats_rx_pkts = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalRxPkts.0").get_value()
@@ -187,137 +143,83 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		scgaptable = scgaptable_varbinds.get_json_name()
 		scgapmac_prefix = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.'
 		scgapmacs = list(x[len(scgapmac_prefix):] for x in scgaptable.keys() if x.startswith(scgapmac_prefix))
+		num_ap_connected = 0
+		num_ap_configured = 0
+		num_ap = 0
+		num_sta = 0
 		for scgapmac in scgapmacs:
-			scgap_mac = ":".join(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
-			scgap = scgap_mac.replace(':', '')
-
-			scgap_group = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGroup.%s' % scgapmac]
-			_log.debug("Device %s AP %s group is %s", self.args.host, scgap_mac, scgap_group)
-			#yield nagiosplugin.Metric('scgap_%s_group' % scgap, scgap_group)
-
-			scgap_zone = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPZone.%s' % scgapmac]
-			_log.debug("Device %s AP %s zone is %s", self.args.host, scgap_mac, scgap_zone)
-			#yield nagiosplugin.Metric('scgap_%s_zone' % scgap, scgap_zone)
-
-			scgap_domain = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPDomain.%s' % scgapmac]
-			_log.debug("Device %s AP %s domain is %s", self.args.host, scgap_mac, scgap_domain)
-			#yield nagiosplugin.Metric('scgap_%s_domain' % scgap, scgap_domain)
-
-			scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % scgapmac]
-			_log.debug("Device %s AP %s name is %s", self.args.host, scgap_mac, scgap_name)
-			#yield nagiosplugin.Metric('scgap_%s_name' % scgap, scgap_name)
-
-			scgap_uptime = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPUptime.%s' % scgapmac]
-			_log.debug("Device %s AP %s uptime is %s", self.args.host, scgap_mac, scgap_uptime)
-			yield nagiosplugin.Metric('scgap_%s_uptime' % scgap, scgap_uptime)
-
-			scgap_fwversion = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPFWversion.%s' % scgapmac]
-			_log.debug("Device %s AP %s firmware version is %s", self.args.host, scgap_mac, scgap_fwversion)
-			#yield nagiosplugin.Metric('scgap_%s_fwversion' % scgap, scgap_fwversion)
-
-			scgap_model = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s' % scgapmac]
-			_log.debug("Device %s AP %s model is %s", self.args.host, scgap_mac, scgap_model)
-			#yield nagiosplugin.Metric('scgap_%s_model' % scgap, scgap_model)
-
-			scgap_serial = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPSerial.%s' % scgapmac]
-			_log.debug("Device %s AP %s serial is %s", self.args.host, scgap_mac, scgap_serial)
-			#yield nagiosplugin.Metric('scgap_%s_serial' % scgap, scgap_serial)
-
-			scgap_ip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])))
-			_log.debug("Device %s AP %s ip address is %s", self.args.host, scgap_mac, scgap_ip)
-			#yield nagiosplugin.Metric('scgap_%s_ip' % scgap, scgap_ip)
-
-			scgap_iptype = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPType.%s' % scgapmac]
-			_log.debug("Device %s AP %s ip address type is %s", self.args.host, scgap_mac, scgap_iptype)
-			#yield nagiosplugin.Metric('scgap_%s_iptype' % scgap, scgap_iptype)
-
-			scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
-			_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
-			#yield nagiosplugin.Metric('scgap_%s_extip' % scgap, scgap_extip)
-
-			scgap_extport = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtPort.%s' % scgapmac]
-			_log.debug("Device %s AP %s external port %s", self.args.host, scgap_mac, scgap_extport)
-			#yield nagiosplugin.Metric('scgap_%s_extport' % scgap, scgap_extport)
-
-			scgap_numsta = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s' % scgapmac]
-			_log.debug("Device %s AP %s number of stations is %d", self.args.host, scgap_mac, scgap_numsta)
-			yield nagiosplugin.Metric('scgap_%s_numsta' % scgap, scgap_numsta)
-
-			scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
-			_log.debug("Device %s AP %s connection status is %s", self.args.host, scgap_mac, scgap_connstatus)
-			#yield nagiosplugin.Metric('scgap_%s_connstatus' % scgap, scgap_connstatus)
+			scgap_mac_parts = list(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
+			scgap_mac = ':'.join(scgap_mac_parts)
 
 			scgap_regstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPRegStatus.%s' % scgapmac]
 			_log.debug("Device %s AP %s registration status is %s", self.args.host, scgap_mac, scgap_regstatus)
-			#yield nagiosplugin.Metric('scgap_%s_regstatus' % scgap, scgap_regstatus)
+			if not scgap_regstatus == 'Approved':
+				_log.debug("Device %s AP %s is not approved, ignoring.", self.args.host, scgap_mac)
+				continue
 
-			scgap_configstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConfigStatus.%s' % scgapmac]
-			_log.debug("Device %s AP %s config status is %s", self.args.host, scgap_mac, scgap_configstatus)
-			#yield nagiosplugin.Metric('scgap_%s_configstatus' % scgap, scgap_configstatus)
+			scgap_zone = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPZone.%s' % scgapmac]
+			_log.debug("Device %s AP %s zone is %s", self.args.host, scgap_mac, scgap_zone)
+			if not re.match(self.config_parser.get(self.args.host, 'scgap_zone_regex'), scgap_zone):
+				_log.debug("Device %s AP %s is in unmonitored zone, ignoring.", self.args.host, scgap_mac)
+				continue
 
-			scgap_location = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPLocation.%s' % scgapmac]
-			_log.debug("Device %s AP %s location is %s", self.args.host, scgap_mac, scgap_location)
-			#yield nagiosplugin.Metric('scgap_%s_location' % scgap, scgap_location)
+			scgap_group = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGroup.%s' % scgapmac]
+			_log.debug("Device %s AP %s group is %s", self.args.host, scgap_mac, scgap_group)
+			if not re.match(self.config_parser.get(self.args.host, 'scgap_group_regex'), scgap_group):
+				_log.debug("Device %s AP %s is in unmonitored group, ignoring.", self.args.host, scgap_mac)
+				continue
 
-			scgap_gpsinfo = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGPSInfo.%s' % scgapmac]
-			_log.debug("Device %s AP %s gps location is %s", self.args.host, scgap_mac, scgap_gpsinfo)
-			#yield nagiosplugin.Metric('scgap_%s_gpsinfo' % scgap, scgap_gpsinfo)
-
-			scgap_meshrole = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMeshRole.%s' % scgapmac]
-			_log.debug("Device %s AP %s mesh role is %s", self.args.host, scgap_mac, scgap_meshrole)
-			#yield nagiosplugin.Metric('scgap_%s_meshrole' % scgap, scgap_meshrole)
-
-			scgap_description = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPDescription.%s' % scgapmac]
-			_log.debug("Device %s AP %s description is %s", self.args.host, scgap_mac, scgap_description)
-			#yield nagiosplugin.Metric('scgap_%s_description' % scgap, scgap_description)
-
-			scgap_rx_bytes = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPRXBytes.%s' % scgapmac]
-			_log.debug("Device %s AP %s rx bytes is %d", self.args.host, scgap_mac, scgap_rx_bytes)
-			yield nagiosplugin.Metric('scgap_%s_rx_bytes' % scgap, scgap_rx_bytes)
-
-			scgap_tx_bytes = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTXBytes.%s' % scgapmac]
-			_log.debug("Device %s AP %s tx bytes is %d", self.args.host, scgap_mac, scgap_tx_bytes)
-			yield nagiosplugin.Metric('scgap_%s_tx_bytes' % scgap, scgap_tx_bytes)
-
-			scgap_ipsec_session_time = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecSessionTime.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec session time is %d", self.args.host, scgap_mac, scgap_ipsec_session_time)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_session_time' % scgap, scgap_ipsec_session_time)
-
-			scgap_ipsec_tx_pkts = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecTXPkts.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec tx packet count is %d", self.args.host, scgap_mac, scgap_ipsec_tx_pkts)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_tx_pkts' % scgap, scgap_ipsec_tx_pkts)
-
-			scgap_ipsec_rx_pkts = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecRXPkts.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec rx packet count is %d", self.args.host, scgap_mac, scgap_ipsec_rx_pkts)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_rx_pkts' % scgap, scgap_ipsec_rx_pkts)
-
-			scgap_ipsec_tx_bytes = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecTXBytes.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec tx byte count is %d", self.args.host, scgap_mac, scgap_ipsec_tx_bytes)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_tx_bytes' % scgap, scgap_ipsec_tx_bytes)
-
-			scgap_ipsec_rx_bytes = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecRXBytes.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec rx byte count is %d", self.args.host, scgap_mac, scgap_ipsec_rx_bytes)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_rx_bytes' % scgap, scgap_ipsec_rx_bytes)
-
-			scgap_ipsec_tx_pkts_dropped = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecTXPktsDropped.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec tx dropped packet count is %d", self.args.host, scgap_mac, scgap_ipsec_tx_pkts_dropped)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_tx_pkts_dropped' % scgap, scgap_ipsec_tx_pkts_dropped)
-
-			scgap_ipsec_rx_pkts_dropped = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecRXPktsDropped.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec rx dropped packet count is %d", self.args.host, scgap_mac, scgap_ipsec_rx_pkts_dropped)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_rx_pkts_dropped' % scgap, scgap_ipsec_rx_pkts_dropped)
-
-			scgap_ipsec_tx_idletime = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecTXIdleTime.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec tx idle time is %d", self.args.host, scgap_mac, scgap_ipsec_tx_idletime)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_tx_idletime' % scgap, scgap_ipsec_tx_idletime)
-
-			scgap_ipsec_rx_idletime = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIpsecRXIdleTime.%s' % scgapmac]
-			_log.debug("Device %s AP %s ipsec rx idle time is %d", self.args.host, scgap_mac, scgap_ipsec_rx_idletime)
-			yield nagiosplugin.Metric('scgap_%s_ipsec_rx_idletime' % scgap, scgap_ipsec_rx_idletime)
+			num_ap += 1
 
 			scgap_ipv6addr = str(ipaddr.IPv6Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])))
 			_log.debug("Device %s AP %s ipv6 address is %s", self.args.host, scgap_mac, scgap_ipv6addr)
-			#yield nagiosplugin.Metric('scgap_%s_ipv6addr' % scgap, scgap_ipv6addr)
+
+			scgap_ip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])))
+			_log.debug("Device %s AP %s ip address is %s", self.args.host, scgap_mac, scgap_ip)
+
+			scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
+			_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
+
+			scgap_hostname = self.config_parser.get(self.args.host, 'scgap_hostname_format').format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts)
+			_log.debug("Device %s AP %s (generated) hostname is %s", self.args.host, scgap_mac, scgap_hostname)
+
+			scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
+			_log.debug("Device %s AP %s connection status is %s", self.args.host, scgap_mac, scgap_connstatus)
+			if scgap_connstatus == 'Connect':
+				num_ap_connected += 1
+
+			scgap_num_sta = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s' % scgapmac]
+			_log.debug("Device %s AP %s number of connected stations is %s", self.args.host, scgap_mac, scgap_num_sta)
+			if scgap_connstatus == 'Connect':
+				num_sta += scgap_num_sta
+
+			scgap_configstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConfigStatus.%s' % scgapmac]
+			_log.debug("Device %s AP %s config status is %s", self.args.host, scgap_mac, scgap_configstatus)
+			if scgap_connstatus == 'Connect' and scgap_configstatus == 'Up-to-date':
+				num_ap_configured += 1
+
+			if self.args.confdir and os.path.isdir(self.args.confdir):
+				with open(os.path.join(self.args.confdir, "ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_')), "w") as conf:
+					conf.write("define host {\n")
+					conf.write("\tuse generic-host\n")
+					conf.write("\thost_name %s\n" % scgap_hostname)
+					conf.write("\talias %s\n" % scgap_hostname)
+					conf.write("\taddress %s\n" % self.args.host)
+					conf.write("}\n")
+					conf.write("\n")
+					conf.write("define service {\n")
+					conf.write("\thost_name %s\n" % scgap_hostname)
+					conf.write("\tservice_description check_ruckus_ap\n")
+					conf.write("\tuse generic-service\n")
+					conf.write("\taction_url /pnp4nagios/index.php/graph?host=$HOSTNAME$&srv=$SERVICEDESC$\n")
+					conf.write("\tcheck_command check_ruckus_ap!%s!%s\n" % (self.args.community, scgap_mac))
+					conf.write("}\n")
+
+		yield nagiosplugin.Metric('num_ap', num_ap)
+		yield nagiosplugin.Metric('num_sta', num_sta)
+		yield nagiosplugin.Metric('num_ap_configured', num_ap_configured)
+		yield nagiosplugin.Metric('num_ap_connected', num_ap_connected)
+
 
 @nagiosplugin.guarded
 def main():
@@ -329,19 +231,14 @@ def main():
 	argp.add_argument('-t', '--timeout', help='Check timeout', type=int, default=30)
 	argp.add_argument('-s', '--snmp-timeout', help='SNMP timeout', dest='snmp_timeout', type=int, default=2)
 	argp.add_argument('-r', '--retries', help='SNMP retries', type=int, default=3)
+	argp.add_argument('-o', '--confdir', help='AP check config directory', default=None)
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
 	args = argp.parse_args()
 
 	device_defaults = dict(
-		scgap_firmware_version = "",
-		scgap_connection_status = "Connect",
-		scgap_registration_status = "Approved",
-		scgap_config_status = "Up-to-date",
-		scgap_meshrole = "Disabled",
-		scgap_group = "",
-		scgap_zone = "",
-		scgap_domain = "",
-		scgap_num_sta_max_warn = 10, scgap_num_sta_max_crit = 15,
+		scgap_hostname_format="{ip}",
+		scgap_zone_regex=".*",
+		scgap_group_regex=".*",
 	)
 	config_defaults = {'general': {}, args.host: device_defaults}
 
@@ -355,11 +252,13 @@ def main():
 		if not config_parser.has_option(args.host, key):
 			config_parser.set(args.host, key, str(value))
 
-	check = nagiosplugin.Check(RUCKUSVSZ(args))
+	check = nagiosplugin.Check(RUCKUSVSZ(args, config_parser))
 	check.add(SNMPContext('reachable'))
 
 	check.add(PerformanceContext('num_ap'))
 	check.add(PerformanceContext('num_sta'))
+	check.add(PerformanceContext('num_ap_connected'))
+	check.add(PerformanceContext('num_ap_configured'))
 
 	check.add(PerformanceContext('stats_rx_pkts', uom='c'))
 	check.add(PerformanceContext('stats_rx_bytes', uom='c'))
@@ -371,91 +270,9 @@ def main():
 	check.add(PerformanceContext('stats_tx_fail', uom='c'))
 	check.add(PerformanceContext('stats_tx_retry', uom='c'))
 
-	tmpsnmpclient = ruckus_vsz_snmp.snmpclient.SnmpClient(args.host, ruckus_vsz_snmp.snmpclient.snmp_auth_data_v2c(community=args.community), timeout=args.snmp_timeout, retries=args.retries)
-	scgaptable_varbinds = tmpsnmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
-	scgaptable = scgaptable_varbinds.get_json_name()
-	scgapmac_prefix = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.'
-	scgapmacs = list(x[len(scgapmac_prefix):] for x in scgaptable.keys() if x.startswith(scgapmac_prefix))
-	for scgapmac in scgapmacs:
-		scgap_mac = ":".join(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
-		scgap = scgap_mac.replace(':','')
-		scgap_model = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s' % scgapmac]
-
-		config_scgap_model_section = '%s/%s' % (args.host, scgap_model)
-		config_scgap_device_section = '%s/%s' % (args.host, scgap_mac)
-
-		if config_scgap_model_section not in config_parser.sections():
-			config_parser.add_section(config_scgap_model_section)
-
-		if config_scgap_device_section not in config_parser.sections():
-			config_parser.add_section(config_scgap_device_section)
-
-		for key, value in device_defaults.items():
-			if not key.startswith('scgap_'):
-				continue
-
-			if not config_parser.has_option(config_scgap_model_section, key):
-				config_parser.set(config_scgap_model_section, key, config_parser.get(args.host, key))
-
-			if not config_parser.has_option(config_scgap_device_section, key):
-				config_parser.set(config_scgap_device_section, key, config_parser.get(config_scgap_model_section, key))
-
-		check.add(PerformanceContext('scgap_%s_name' % scgap))
-		check.add(PerformanceContext('scgap_%s_model' % scgap))
-		check.add(PerformanceContext('scgap_%s_location' % scgap))
-		check.add(PerformanceContext('scgap_%s_gpsinfo' % scgap))
-		check.add(PerformanceContext('scgap_%s_description' % scgap))
-		check.add(PerformanceContext('scgap_%s_serial' % scgap))
-
-		check.add(PerformanceContext('scgap_%s_group' % scgap))
-		check.add(PerformanceContext('scgap_%s_zone' % scgap))
-		check.add(PerformanceContext('scgap_%s_domain' % scgap))
-
-		check.add(nagiosplugin.ScalarContext('scgap_%s_uptime' % scgap, warning='@%i:%i' % (0, args.uptime)))
-
-		cfg_fwversion = config_parser.get(config_scgap_device_section, 'scgap_firmware_version')
-		if cfg_fwversion:
-			check.add(ElementContext('scgap_%s_fwversion' % scgap, ok_values=[cfg_fwversion],default_state = nagiosplugin.state.Warn))
-		else:
-			check.add(PerformanceContext('scgap_%s_fwversion' % scgap))
-
-		cfg_connection_status = config_parser.get(config_scgap_device_section, 'scgap_connection_status')
-		check.add(ElementContext('scgap_%s_connstatus' % scgap, ok_values=[cfg_connection_status], crit_text='%s should be %s' % (scgap_mac, cfg_connection_status), default_state = nagiosplugin.state.Critical))
-
-		cfg_registration_status = config_parser.get(config_scgap_device_section, 'scgap_registration_status')
-		check.add(ElementContext('scgap_%s_regstatus' % scgap, ok_values=[cfg_registration_status], warn_text='%s should be %s' % (scgap_mac, cfg_registration_status), default_state = nagiosplugin.state.Warn))
-
-		cfg_config_status = config_parser.get(config_scgap_device_section, 'scgap_config_status')
-		check.add(ElementContext('scgap_%s_configstatus' % scgap, ok_values=[cfg_config_status], warn_text='%s should be %s' % (scgap_mac, cfg_config_status), default_state = nagiosplugin.state.Warn))
-
-		cfg_meshrole = config_parser.get(config_scgap_device_section, 'scgap_meshrole')
-		check.add(ElementContext('scgap_%s_meshrole' % scgap, ok_values=[cfg_meshrole], crit_text='%s should be %s' % (scgap_mac, cfg_meshrole), default_state = nagiosplugin.state.Critical))
-
-		check.add(PerformanceContext('scgap_%s_ip' % scgap))
-		check.add(PerformanceContext('scgap_%s_iptype' % scgap))
-		check.add(PerformanceContext('scgap_%s_extip' % scgap))
-		check.add(PerformanceContext('scgap_%s_extport' % scgap))
-		check.add(PerformanceContext('scgap_%s_ipv6addr' % scgap))
-
-		check.add(nagiosplugin.ScalarContext('scgap_%s_numsta' % scgap,
-												warning='0:%i' % (config_parser.getint(config_scgap_device_section, 'scgap_num_sta_max_warn')),
-												critical='0:%i' % (config_parser.getint(config_scgap_device_section, 'scgap_num_sta_max_crit'))))
-
-		check.add(PerformanceContext('scgap_%s_rx_bytes' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_tx_bytes' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_session_time' % scgap))
-		check.add(PerformanceContext('scgap_%s_ipsec_tx_pkts' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_rx_pkts' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_tx_bytes' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_rx_bytes' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_tx_pkts_dropped' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_rx_pkts_dropped' % scgap, uom='c'))
-		check.add(PerformanceContext('scgap_%s_ipsec_tx_idletime' % scgap))
-		check.add(PerformanceContext('scgap_%s_ipsec_rx_idletime' % scgap))
-
 	check.add(nagiosplugin.ScalarContext('sysuptime', warning='@%i:%i' % (0, args.uptime)))
 
-#	check.add(RUCKUSVSZSummary())
+	check.add(RUCKUSVSZSummary())
 
 	check.main(args.verbose, timeout=args.timeout)
 

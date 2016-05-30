@@ -10,5 +10,5 @@ setup(name='check_ruckus_vsz',
 	author_email='l.schauer@cygnusnetworks.de',
 	license='Apache 2.0',
 	packages=['ruckus_vsz_snmp'],
-	scripts=['check_ruckus_vsz'],
+	scripts=['check_ruckus_vsz', 'check_ruckus_ap'],
 	install_requires=['configparser', 'nagiosplugin', 'pysnmp', 'ipaddr'])
