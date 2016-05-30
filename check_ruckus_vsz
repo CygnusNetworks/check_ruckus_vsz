@@ -24,6 +24,8 @@ class RUCKUSVSZSummary(nagiosplugin.Summary):
 	def ok(self, results):
 		summary = '%d stations connected ' % (results['num_sta'].metric.value)
 		summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
+		summary += 'DISK:(free %.1f / %.1f GB -- %.1f%%) ' % (results['data_free'].metric.value, results['data_size'].metric.value, results['data_free_percent'].metric.value)
+		summary += 'MEM:(free %.1f / %.1f GB -- %.1f%%) ' % (results['mem_free'].metric.value, results['mem_size'].metric.value, results['mem_free_percent'].metric.value)
 		return summary
 
 	def problem(self, results):
@@ -138,6 +140,36 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		_log.debug("Device %s number of packets retried to transmit is %d", self.args.host, stats_tx_retry)
 		yield nagiosplugin.Metric('stats_tx_retry', stats_tx_retry)
 
+		# storage
+		hrstoragetable_varbinds = self.snmpclient.gettable("HOST-RESOURCES-MIB::hrStorageTable")
+		hrstoragetable = hrstoragetable_varbinds.get_json_name()
+		hrstorage_descr_prefix = 'HOST-RESOURCES-MIB::hrStorageDescr.'
+		hrstorageids = list(x[len(hrstorage_descr_prefix):] for x in hrstoragetable.keys() if x.startswith(hrstorage_descr_prefix))
+		data_size = 'U'
+		data_free = 'U'
+		mem_size = 'U'
+		mem_free = 'U'
+		for hrstorageid in hrstorageids:
+			hrstoragedescr = hrstoragetable['HOST-RESOURCES-MIB::hrStorageDescr.%s' % hrstorageid]
+			if hrstoragedescr == '/data':
+				data_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
+				data_size = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageSize.%s' % hrstorageid] * data_units) / pow(1024, 3)
+				data_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * data_units) / pow(1024, 3)
+				data_free = data_size - data_used
+			elif hrstoragedescr == 'Physical memory':
+				mem_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
+				mem_size = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageSize.%s' % hrstorageid] * mem_units) / pow(1024, 3)
+				mem_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * mem_units) / pow(1024, 3)
+				mem_free = mem_size - mem_used
+
+		yield nagiosplugin.Metric('data_size', data_size)
+		yield nagiosplugin.Metric('data_free', data_free)
+		yield nagiosplugin.Metric('data_free_percent', 'U' if data_size == 'U' else ((data_free / data_size) * 100.0))
+		yield nagiosplugin.Metric('mem_size', mem_size)
+		yield nagiosplugin.Metric('mem_free', mem_free)
+		yield nagiosplugin.Metric('mem_free_percent', 'U' if mem_size == 'U' else ((mem_free / mem_size) * 100.0))
+
+
 		# aps
 		scgaptable_varbinds = self.snmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
 		scgaptable = scgaptable_varbinds.get_json_name()
@@ -239,6 +271,8 @@ def main():
 		scgap_hostname_format="{ip}",
 		scgap_zone_regex=".*",
 		scgap_group_regex=".*",
+		data_free_min_warn=40, data_free_min_crit=30,
+		mem_free_min_warn=4, mem_free_min_crit=2,
 	)
 	config_defaults = {'general': {}, args.host: device_defaults}
 
@@ -269,6 +303,17 @@ def main():
 	check.add(PerformanceContext('stats_tx_multicast', uom='c'))
 	check.add(PerformanceContext('stats_tx_fail', uom='c'))
 	check.add(PerformanceContext('stats_tx_retry', uom='c'))
+
+	check.add(PerformanceContext('data_size'))
+	check.add(nagiosplugin.ScalarContext('data_free', 
+													warning='%d:' % (config_parser.getint(args.host, 'data_free_min_warn')),
+													critical='%d:' % (config_parser.getint(args.host, 'data_free_min_crit'))))
+	check.add(PerformanceContext('data_free_percent'))
+	check.add(PerformanceContext('mem_size'))
+	check.add(nagiosplugin.ScalarContext('mem_free', 
+													warning='%d:' % (config_parser.getint(args.host, 'mem_free_min_warn')),
+													critical='%d:' % (config_parser.getint(args.host, 'mem_free_min_crit'))))
+	check.add(PerformanceContext('mem_free_percent'))
 
 	check.add(nagiosplugin.ScalarContext('sysuptime', warning='@%i:%i' % (0, args.uptime)))
 
