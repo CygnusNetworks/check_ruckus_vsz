@@ -1,3 +1,3 @@
-pnp4nagios/check_ruckus_vsz.php /usr/share/check_ruckus_vsz
-pnp4nagios/check_ruckus_ap.php /usr/share/check_ruckus_vsz
+pnp4nagios/check_ruckus_vsz.php /usr/share/check-ruckus-vsz
+pnp4nagios/check_ruckus_ap.php /usr/share/check-ruckus-vsz
 
