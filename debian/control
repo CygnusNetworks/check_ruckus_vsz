@@ -10,5 +10,6 @@ Package: check-ruckus-vsz
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}
 Description: Ruckus SCG Nagios check
- Nagios/Icinga Plugin for Ruckus SCG systems using SNMP to query the device.%
+ Nagios/Icinga Plugin for Ruckus Virtual Smartzone systems
+ using SNMP to query the device.
 
