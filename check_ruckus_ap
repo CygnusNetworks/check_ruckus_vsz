@@ -160,7 +160,7 @@ def main():
 	argp.add_argument('-C', '--community', help='SNMP Community', default='public')
 	argp.add_argument('-H', '--host', help='Hostname or network address to check', required=True)
 	argp.add_argument('-t', '--timeout', help='Check timeout', type=int, default=30)
-	argp.add_argument('-s', '--snmp-timeout', help='SNMP timeout', dest='snmp_timeout', type=int, default=2)
+	argp.add_argument('-s', '--snmp-timeout', help='SNMP timeout', dest='snmp_timeout', type=int, default=5)
 	argp.add_argument('-r', '--retries', help='SNMP retries', type=int, default=3)
 	argp.add_argument('-a', '--scgap', help='AP mac address (format: AA:BB:CC:DD:EE:FF)', required=True)
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
