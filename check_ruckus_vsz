@@ -179,7 +179,6 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		yield nagiosplugin.Metric('mem_free', mem_free)
 		yield nagiosplugin.Metric('mem_free_percent', 'U' if mem_size == 'U' else ((mem_free / mem_size) * 100.0))
 
-
 		# aps
 		scgaptable_varbinds = self.snmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
 		scgaptable = scgaptable_varbinds.get_json_name()
@@ -318,25 +317,35 @@ def main():
 	check.add(PerformanceContext('stats_tx_fail', uom='c'))
 	check.add(PerformanceContext('stats_tx_retry', uom='c'))
 
-	check.add(nagiosplugin.ScalarContext('load_1min',
-														warning='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_warn')),
-														critical='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_crit'))))
-	check.add(nagiosplugin.ScalarContext('load_5min',
-														warning='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_warn')),
-														critical='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_crit'))))
-	check.add(nagiosplugin.ScalarContext('load_15min',
-														warning='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_warn')),
-														critical='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_crit'))))
+	check.add(nagiosplugin.ScalarContext(
+		'load_1min',
+		warning='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_warn')),
+		critical='0:%d' % (config_parser.getfloat(args.host, 'load_1min_max_crit')))
+	)
+	check.add(nagiosplugin.ScalarContext(
+		'load_5min',
+		warning='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_warn')),
+		critical='0:%d' % (config_parser.getfloat(args.host, 'load_5min_max_crit')))
+	)
+	check.add(nagiosplugin.ScalarContext(
+		'load_15min',
+		warning='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_warn')),
+		critical='0:%d' % (config_parser.getfloat(args.host, 'load_15min_max_crit')))
+	)
 
 	check.add(PerformanceContext('data_size'))
-	check.add(nagiosplugin.ScalarContext('data_free', 
-													warning='%d:' % (config_parser.getint(args.host, 'data_free_min_warn')),
-													critical='%d:' % (config_parser.getint(args.host, 'data_free_min_crit'))))
+	check.add(nagiosplugin.ScalarContext(
+		'data_free',
+		warning='%d:' % (config_parser.getint(args.host, 'data_free_min_warn')),
+		critical='%d:' % (config_parser.getint(args.host, 'data_free_min_crit')))
+	)
 	check.add(PerformanceContext('data_free_percent'))
 	check.add(PerformanceContext('mem_size'))
-	check.add(nagiosplugin.ScalarContext('mem_free', 
-													warning='%d:' % (config_parser.getint(args.host, 'mem_free_min_warn')),
-													critical='%d:' % (config_parser.getint(args.host, 'mem_free_min_crit'))))
+	check.add(nagiosplugin.ScalarContext(
+		'mem_free',
+		warning='%d:' % (config_parser.getint(args.host, 'mem_free_min_warn')),
+		critical='%d:' % (config_parser.getint(args.host, 'mem_free_min_crit')))
+	)
 	check.add(PerformanceContext('mem_free_percent'))
 
 	check.add(nagiosplugin.ScalarContext('sysuptime', warning='@%i:%i' % (0, args.uptime)))
