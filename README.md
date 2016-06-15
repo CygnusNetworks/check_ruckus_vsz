@@ -1,44 +1,29 @@
-# Ruckus Virtual Smartzone Nagios Check
+# Ruckus Nagios Check for Virtual Smartzone and Access Points
 
-This Nagios/Icinga Check provides the ability to query Ruckus Virtual Smartzone Gateway devices for current status.
+This Nagios/Icinga Check provides the ability to query Ruckus Virtual Smartzone Gateway devices for current system status.
 
-It will output number of monitored APs, connected stations, traffic statistics, system load, free memory
-and disk space as well as the system uptime and few other values as performance data for use with tools like pnp4nagios.
+It will check and generate performance data for:
 
-Implementation is in Python. You will need Python libraries nagiosplugin, pysnmp and ipaddr as dependencies.
+  - number of access points
+  - connected stations
+  - traffic statistics
+  - system load
+  - memory
+  - harddisk
+  - system uptime
+ 
+In addition you can query performance data of the connected access points. 
+ 
+## Dependencies
 
-You'll also need to enable the SNMP Agent on your Ruckus Virtual Smartzone Gateway and set a SNMP Read community.
+  Implementation is in Python. You will need a installed Python interpreter and the following Python modules:
+  
+  - nagiosplugin
+  - pysnmp
+  - configparser
+  - ipaddr
 
-## AccessPoint checks
-
-This package also contains a check for single APs configured with the Virtual Smartzone Gateway.
-
-Monitored AP zones and groups can be configured by using the `scgap_zone_regex` and `scgap_group_regex` config values
-(default is `.*`, so every approved AP is monitored).
-
-This check returns performance data about single APs like transferred bytes and connected stations,
-it sets it status to CRIT if the monitored AP is disconnected and WARN if there are unapplied configuration changes.
-
-### Configuration
-
-To configure these AP checks there is a special option `-o /path/to/nagios/confdir` on check_ruckus_vsz which can be used to set
-an output directory for nagios host (and service) configuration files.
-
-The script writes a configuration for every approved AP within the configured zones and groups,
-using the hostname of the defined controller as "real" address and setting a hostname based on the
-`scgap_hostname_format` config value.
-
-`scgap_hostname_format` is a python formatted string with a few variables (mac[0] - mac[5], ip, ipv6, extip) set.  
-An example config value could be `scgap_hostname_format = ap-{mac[0]}{mac[1]}{mac[2]}{mac[3]}{mac[4]}{mac[5]}.ddns.example.org`.
-
-To write these configuration files you can add the `-o /path/to/nagios/confdir` parameter to your check command or
-invoke the command manually (this could also be done in a cronjob):
-
-```
-./check_ruckus_vsz -H 10.0.0.1 -C public -o /etc/nagios/ruckus-aps/
-```
-
-### Installation (manual using pip) on your Nagios Host
+## Manual installation on your Nagios Host
 ```
 pip install -r requirements.txt
 python setup.py install
@@ -46,11 +31,11 @@ ln -s /usr/bin/check_ruckus_vsz /usr/lib/nagios/plugins/check_ruckus_vsz
 ln -s /usr/bin/check_ruckus_ap /usr/lib/nagios/plugins/check_ruckus_ap # optional
 ```
 
-### Installation Debian package
+## Installation Debian package
 
-For Debian you can use the provided Debian package. Debian Jessie should be fine without any additional packages. For Debian Wheezy you will need python-configparser from Backports.
+For Debian you can use the provided Debian package. Debian Jessie and above should be fine without any additional packages. 
 
-### Usage example
+## Usage example
 
 Nagios Plugin called manually:
 
@@ -60,23 +45,52 @@ Nagios Plugin called manually:
 
 See `check_ruckus_vsz -h` for additional command line arguments. Use -vvv to get Debug Output including additional system information.
 
-### Using a config file
+## AccessPoint checks
 
-You can use a config file to change ranges of the warning and critical value ranges for the different monitored devices. The config is expected to be named `/etc/check_ruckus_vsz.conf`.
-Use the command line switch `--config (-c)` to override this behaviour.
+This package also contains a check for single APs configured with the Virtual Smartzone Gateway.
+
+Monitored AP zones and groups can be configured by using the `--zone-regex` and `--group-regex` command line options or corresponding configuration file statements. 
+This defaults to `.*` which will included every approved AP.
+
+This check returns performance data about single APs like transferred bytes and connected stations,
+it sets it status to CRIT if the monitored AP is disconnected and WARN if there are unapplied configuration changes.
+
+### Configuration AccessPoint checks
+
+To configure these AP checks there is a special option `-o /path` on check_ruckus_vsz which can be used to set
+an output directory for nagios host and service configuration files.
+
+The script writes a configuration for every approved AP within the configured zones and groups,
+using the hostname of the defined controller as "real" address and setting a hostname based on the
+`--hostname-format` command line option.
+
+The hostname format is a python formatted string with a few variables (mac[0] - mac[5], ip, ipv6, extip) set.  
+An example config value could be `--hostname_format "ap-{mac[0]}{mac[1]}{mac[2]}{mac[3]}{mac[4]}{mac[5]}.ddns.example.org"`.
+
+To write these configuration add the `-o /path` parameter to the command for example in a cronjob:
+
+```
+./check_ruckus_vsz -H 10.0.0.1 -C public -o /etc/nagios3/ruckus.d
+```
+
+Make sure that the output dir exists and is included in your nagios configuration using the cfg_dir statement. 
+
+## Using a config file
+
+You can use a config file to change ranges of the warning and critical value ranges for the different monitored devices. 
+The config file is expected to be named `/etc/check_ruckus_vsz.conf`. Using the command line switch `--config (-c)` you can override this behaviour.
 
 The config file must contain sections named after the specified hostname/hostaddress of the device (parameter -H) of the check_ruckus_vsz call.
 You can list the changed parameters within this section. Non present values will be set to default values.
 
-Example (all values are the default values):
+Example with default values:
 
 /etc/check_ruckus_vsz.conf
 
 ```
 [10.0.0.1]
-scgap_hostname_format = {ip}
-scgap_zone_regex = .*
-scgap_group_regex = .*
+zone_regex = .*
+group_regex = .*
 
 data_free_min_warn = 40
 data_free_min_crit = 30
@@ -92,7 +106,7 @@ load_15min_max_warn = 3.0
 load_15min_max_crit = 4.0
 ```
 
-### Nagios Integration
+## Nagios Integration
 
 Define the commands for Nagios checks and include it in the service definitions:
 
