@@ -199,13 +199,13 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				scgap_zone = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPZone.%s' % scgapmac]
 				_log.debug("Device %s AP %s zone is %s", self.args.host, scgap_mac, scgap_zone)
-				if not re.match(self.args.zone_regex, scgap_zone):
+				if not re.match(self.config_parser.get(self.args.host, 'scgap_zone_regex'), scgap_zone):
 					_log.debug("Device %s AP %s is in unmonitored zone, ignoring.", self.args.host, scgap_mac)
 					continue
 
 				scgap_group = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGroup.%s' % scgapmac]
 				_log.debug("Device %s AP %s group is %s", self.args.host, scgap_mac, scgap_group)
-				if not re.match(self.args.group_regex, scgap_group):
+				if not re.match(self.config_parser.get(self.args.host, 'scgap_group_regex'), scgap_group):
 					_log.debug("Device %s AP %s is in unmonitored group, ignoring.", self.args.host, scgap_mac)
 					continue
 
@@ -220,7 +220,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
 				_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
 
-				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
+				scgap_hostname = self.config_parser.get(self.args.host, 'scgap_hostname_format').format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
 				_log.debug("Device %s AP %s (generated) hostname is %s", self.args.host, scgap_mac, scgap_hostname)
 
 				scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
@@ -251,7 +251,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_ipv6addr = str(ipaddr.IPv6Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])))
 				scgap_ip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])))
 				scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
-				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
+				scgap_hostname = self.config_parser.get(self.args.host, 'scgap_hostname_format').format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
 				host_config = os.path.join(self.args.output_dir, "host-ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_'))
 				with open(host_config, "w") as conf:
 					print("Creating Nagios host config file %s" % host_config)
@@ -296,12 +296,13 @@ def main():
 	argp.add_argument('--host-template', help='Nagios host template', default='generic-host')
 	argp.add_argument('--service-template', help='Nagios service template', default='generic-service-perfdata')
 	argp.add_argument('--hostname-format', help='Nagios hostname format', default='{ip}')
-	argp.add_argument('-z', '--zone-regexp', help='Zone regular expression filter for access points', default='.*')
-	argp.add_argument('-g', '--group-regexp', help='Group regular expression filter for access points', default='.*')
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
 	args = argp.parse_args()
 
 	device_defaults = dict(
+		scgap_hostname_format=args.hostname_format,
+		scgap_zone_regex=".*",
+		scgap_group_regex=".*",
 		data_free_min_warn=40, data_free_min_crit=30,
 		mem_free_min_warn=4, mem_free_min_crit=2,
 
