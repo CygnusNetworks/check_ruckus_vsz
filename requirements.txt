@@ -3,4 +3,4 @@
 -e .
 nagiosplugin
 pysnmp
-ipaddr
+ipaddress

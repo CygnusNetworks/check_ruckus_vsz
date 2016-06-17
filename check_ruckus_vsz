@@ -8,7 +8,7 @@ import re
 import sys
 
 import configparser
-import ipaddr
+import ipaddress
 import nagiosplugin
 import nagiosplugin.result
 import nagiosplugin.state
@@ -211,13 +211,13 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				num_ap += 1
 
-				scgap_ipv6addr = str(ipaddr.IPv6Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])))
+				scgap_ipv6addr = str(ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
 				_log.debug("Device %s AP %s ipv6 address is %s", self.args.host, scgap_mac, scgap_ipv6addr)
 
-				scgap_ip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])))
+				scgap_ip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
 				_log.debug("Device %s AP %s ip address is %s", self.args.host, scgap_mac, scgap_ip)
 
-				scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
+				scgap_extip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
 				_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
 
 				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
@@ -247,9 +247,9 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			for scgapmac in scgapmacs:
 				scgap_mac_parts = list(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
 				scgap_mac = ':'.join(scgap_mac_parts)
-				scgap_ipv6addr = str(ipaddr.IPv6Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])))
-				scgap_ip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])))
-				scgap_extip = str(ipaddr.IPv4Address(ipaddr.Bytes(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])))
+				scgap_ipv6addr = str(ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
+				scgap_ip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
+				scgap_extip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
 				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
 				host_config = os.path.join(self.args.output_dir, "host-ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_'))
 				with open(host_config, "w") as conf:
