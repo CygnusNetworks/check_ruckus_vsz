@@ -238,7 +238,6 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				if scgap_connstatus == 'Connect' and scgap_configstatus == 'Up-to-date':
 					num_ap_configured += 1
 
-
 			yield nagiosplugin.Metric('num_ap', num_ap)
 			yield nagiosplugin.Metric('num_sta', num_sta)
 			yield nagiosplugin.Metric('num_ap_configured', num_ap_configured)
@@ -272,7 +271,6 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 					conf.write("\tcheck_command\t\tcheck_ruckus_ap!%s!%s\n" % (self.args.community, scgap_mac))
 					conf.write("}\n")
 					conf.write("\n")
-
 
 	def get_aps(self):
 		scgaptable_varbinds = self.snmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
