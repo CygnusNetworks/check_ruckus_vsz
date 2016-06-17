@@ -19,10 +19,10 @@ $def[1] .= rrd::gprint("num_sta", array("LAST", "AVERAGE", "MAX"), "Average %3.0
 
 $ds_name[2] = 'Throughput';
 $opt[2] = "--upper-limit 250 --lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
-$def[2] .= rrd::line1("stats_rx_bytes", "#21db2a", "Received Bytes");
+$def[2] .= rrd::line1("stats_rx_bytes", "#21db2a", "RX Bytes");
 $def[2] .= rrd::gprint("stats_rx_bytes", array("LAST", "AVERAGE", "MAX"), "%3.0lf");
 
-$def[2] .= rrd::line1("stats_tx_bytes", "#db212a", "Transmitted Bytes");
+$def[2] .= rrd::line1("stats_tx_bytes", "#db212a", "TX Bytes");
 $def[2] .= rrd::gprint("stats_tx_bytes", array("LAST", "AVERAGE", "MAX"), "%3.0lf");
 
 ?>

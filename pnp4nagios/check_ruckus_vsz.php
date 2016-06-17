@@ -38,10 +38,10 @@ $def[2] .= rrd::gprint("num_sta", array("AVERAGE", "MAX", "LAST"), "%3.0lf");
 
 $ds_name[3] = 'Total Throughput';
 $opt[3] = "--upper-limit 250 --lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
-$def[3] .= rrd::line1("stats_rx_bytes", "#21db2a", "Received Bytes");
+$def[3] .= rrd::line1("stats_rx_bytes", "#21db2a", "RX Bytes");
 $def[3] .= rrd::gprint("stats_rx_bytes", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
-$def[3] .= rrd::line1("stats_tx_bytes", "#db212a", "Transmitted Bytes");
+$def[3] .= rrd::line1("stats_tx_bytes", "#db212a", "TX Bytes");
 $def[3] .= rrd::gprint("stats_tx_bytes", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
 $ds_name[4] = 'Data Partition';

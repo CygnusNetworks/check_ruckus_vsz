@@ -21,7 +21,7 @@ _log = logging.getLogger('nagiosplugin')
 class RUCKUSAPSummary(nagiosplugin.Summary):
 	def ok(self, results):
 		summary = ''
-		summary += '%d stations connected (%.2f GB Received, %.2f GB Transmitted) ' % (results['num_sta'].metric.value, float(results['stats_rx_bytes'].metric.value) / pow(1024, 3), float(results['stats_tx_bytes'].metric.value) / pow(1024, 3))
+		summary += '%d stations connected (%.2f GB RX, %.2f GB TX) ' % (results['num_sta'].metric.value, float(results['stats_rx_bytes'].metric.value) / pow(1024, 3), float(results['stats_tx_bytes'].metric.value) / pow(1024, 3))
 		summary += 'INFO:(location %s, description %s) ' % (results['location'].metric.value or 'undefined', results['description'].metric.value or 'undefined')
 		summary += 'DEVICE:(model %s, firmware %s, serial %s) ' % (results['model'].metric.value, results['firmware'].metric.value, results['serial'].metric.value)
 		return summary
