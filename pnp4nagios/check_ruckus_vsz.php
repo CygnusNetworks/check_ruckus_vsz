@@ -23,21 +23,21 @@ for ($i=1; $i <= count($DS); $i++) {
 }
 
 $ds_name[1] = 'Access Points';
-$opt[1] = "--upper-limit 42 --lower-limit 0 --vertical-label \"Access Points\"  --title $hostname";
-$def[1] .= rrd::line1("num_ap", "#21db2a", "Number of monitored accesspoints");
+$opt[1] = "--lower-limit 0 --vertical-label \"Access Points\"  --title $hostname";
+$def[1] .= rrd::line1("num_ap", "#21db2a", "Monitored accesspoints");
 $def[1] .= rrd::gprint("num_ap", array("AVERAGE", "MAX", "LAST"), "%3.0lf");
-$def[1] .= rrd::line1("num_ap_connected", "#db212a", "Number of connected accesspoints");
+$def[1] .= rrd::line1("num_ap_connected", "#db212a", "Connected accesspoints");
 $def[1] .= rrd::gprint("num_ap_connected", array("AVERAGE", "MAX", "LAST"), "%3.0lf");
-$def[1] .= rrd::line1("num_ap_configured", "#212adb", "Number of configured accesspoints");
+$def[1] .= rrd::line1("num_ap_configured", "#212adb", "Configured accesspoints");
 $def[1] .= rrd::gprint("num_ap_configured", array("AVERAGE", "MAX", "LAST"), "%3.0lf");
 
 $ds_name[2] = 'Clients';
-$opt[2] = "--upper-limit 250 --lower-limit 0 --vertical-label \"Clients\"  --title $hostname";
-$def[2] .= rrd::line1("num_sta", "#21db2a", "Number of Clients");
+$opt[2] = "--lower-limit 0 --vertical-label \"Clients\"  --title $hostname";
+$def[2] .= rrd::line1("num_sta", "#21db2a", "Clients");
 $def[2] .= rrd::gprint("num_sta", array("AVERAGE", "MAX", "LAST"), "%3.0lf");
 
 $ds_name[3] = 'Total Throughput';
-$opt[3] = "--upper-limit 250 --lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
+$opt[3] = "--lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
 $def[3] .= rrd::line1("stats_rx_bytes", "#21db2a", "RX Bytes");
 $def[3] .= rrd::gprint("stats_rx_bytes", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
@@ -45,7 +45,7 @@ $def[3] .= rrd::line1("stats_tx_bytes", "#db212a", "TX Bytes");
 $def[3] .= rrd::gprint("stats_tx_bytes", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
 $ds_name[4] = 'Data Partition';
-$opt[4] = "--upper-limit 100 --lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
+$opt[4] = "--lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
 $def[4] .= rrd::line1("data_size", "#21db2a", "Partition Size");
 $def[4] .= rrd::gprint("data_size", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
@@ -53,7 +53,7 @@ $def[4] .= rrd::line1("data_free", "#db212a", "Free Space");
 $def[4] .= rrd::gprint("data_free", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
 $ds_name[5] = 'Memory';
-$opt[5] = "--upper-limit 16 --lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
+$opt[5] = "--lower-limit 0 --vertical-label \"Bytes\"  --title $hostname";
 $def[5] .= rrd::line1("mem_size", "#21db2a", "Total Memory");
 $def[5] .= rrd::gprint("mem_size", array("AVERAGE", "MAX", "LAST"), "%3.2lf");
 
