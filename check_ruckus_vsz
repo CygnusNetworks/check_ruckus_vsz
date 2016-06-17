@@ -220,7 +220,10 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_extip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
 				_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
 
-				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
+				scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % scgapmac]
+				scgap_name = re.sub(r'\s', '_', scgap_name)  # whitespace -> _
+				scgap_name = re.sub(r'[^A-Za-z0-9_-]', '', scgap_name)  # only allow certain characters in hostname
+				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name)
 				_log.debug("Device %s AP %s (generated) hostname is %s", self.args.host, scgap_mac, scgap_hostname)
 
 				scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
@@ -250,7 +253,10 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_ipv6addr = str(ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
 				scgap_ip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
 				scgap_extip = str(ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
-				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts).lower()
+				scgap_name = scgaptable["RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s" % scgapmac]
+				scgap_name = re.sub(r'\s', '_', scgap_name)  # whitespace -> _
+				scgap_name = re.sub(r'[^A-Za-z0-9_-]', '', scgap_name)  # only allow certain characters in hostname
+				scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name)
 				host_config = os.path.join(self.args.output_dir, "host-ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_'))
 				with open(host_config, "w") as conf:
 					print("Creating Nagios host config file %s" % host_config)
