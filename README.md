@@ -64,10 +64,10 @@ The script writes a configuration for every approved AP within the configured zo
 using the hostname of the defined controller as "real" address and setting a hostname based on the
 `--hostname-format` command line option.
 
-The hostname format is a python formatted string with a few variables (mac[0] - mac[5], ip, ipv6, extip) set.  
+The hostname format is a python formatted string with a few variables (mac[0] - mac[5], ip, ipv6, extip, name) set.  
 An example config value could be `--hostname_format "ap-{mac[0]}{mac[1]}{mac[2]}{mac[3]}{mac[4]}{mac[5]}.ddns.example.org"`.
 
-To write these configuration add the `-o /path` parameter to the command for example in a cronjob:
+To write these configuration files to a directory add the `-o /path` parameter in a cronjob or similar (don't set this on your nagios check):
 
 ```
 ./check_ruckus_vsz -H 10.0.0.1 -C public -o /etc/nagios3/ruckus.d
