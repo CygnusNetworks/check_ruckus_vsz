@@ -159,7 +159,10 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			hrstorageids = list(x[len(hrstorage_descr_prefix):] for x in hrstoragetable.keys() if x.startswith(hrstorage_descr_prefix))
 			data_size = 'U'
 			data_free = 'U'
-			mem_size = 'U'
+			phys_mem_size = 'U'
+			phys_mem_used = 'U'
+			buff_mem_used = 'U'
+			cache_mem_used = 'U'
 			mem_free = 'U'
 			for hrstorageid in hrstorageids:
 				hrstoragedescr = hrstoragetable['HOST-RESOURCES-MIB::hrStorageDescr.%s' % hrstorageid]
@@ -169,17 +172,25 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 					data_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * data_units) / pow(1024, 3)
 					data_free = data_size - data_used
 				elif hrstoragedescr == 'Physical memory':
-					mem_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
-					mem_size = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageSize.%s' % hrstorageid] * mem_units) / pow(1024, 3)
-					mem_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * mem_units) / pow(1024, 3)
-					mem_free = mem_size - mem_used
+					phys_mem_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
+					phys_mem_size = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageSize.%s' % hrstorageid] * phys_mem_units) / pow(1024, 3)
+					phys_mem_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * phys_mem_units) / pow(1024, 3)
+				elif hrstoragedescr == 'Memory buffers':
+					buff_mem_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
+					buff_mem_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * buff_mem_units) / pow(1024, 3)
+				elif hrstoragedescr == 'Cached memory':
+					cache_mem_units = hrstoragetable['HOST-RESOURCES-MIB::hrStorageAllocationUnits.%s' % hrstorageid]
+					cache_mem_used = float(hrstoragetable['HOST-RESOURCES-MIB::hrStorageUsed.%s' % hrstorageid] * cache_mem_units) / pow(1024, 3)
+
+			if 'U' not in [phys_mem_size, phys_mem_used, buff_mem_used, cache_mem_used]:
+				mem_free = phys_mem_size - phys_mem_used + buff_mem_used + cache_mem_used
 
 			yield nagiosplugin.Metric('data_size', data_size)
 			yield nagiosplugin.Metric('data_free', data_free)
 			yield nagiosplugin.Metric('data_free_percent', 'U' if data_size == 'U' else ((data_free / data_size) * 100.0))
-			yield nagiosplugin.Metric('mem_size', mem_size)
+			yield nagiosplugin.Metric('mem_size', phys_mem_size)
 			yield nagiosplugin.Metric('mem_free', mem_free)
-			yield nagiosplugin.Metric('mem_free_percent', 'U' if mem_size == 'U' else ((mem_free / mem_size) * 100.0))
+			yield nagiosplugin.Metric('mem_free_percent', 'U' if phys_mem_size == 'U' else ((mem_free / phys_mem_size) * 100.0))
 
 			# aps
 			scgapmacs, scgaptable = self.get_aps()
