@@ -227,11 +227,11 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 					scgap_ipv6addr = ipaddress.IPv6Address(tmp_scgap_ipv6addr)  # verify ipv6 address
 					del tmp_scgap_ipv6addr
 
-					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in re.findall("(.{1})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
+					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
 					scgap_ip = ipaddress.IPv4Address(tmp_scgap_ip)  # verify ip address
 					del tmp_scgap_ip
 
-					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in re.findall("(.{1})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
+					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
 					scgap_extip = ipaddress.IPv4Address(tmp_scgap_extip)  # verify ext. ip address
 					del tmp_scgap_extip
 				else:
@@ -279,11 +279,11 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 					scgap_ipv6addr = ipaddress.IPv6Address(tmp_scgap_ipv6addr)  # verify ipv6 address
 					del tmp_scgap_ipv6addr
 
-					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in re.findall("(.{1})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
+					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
 					scgap_ip = ipaddress.IPv4Address(tmp_scgap_ip)  # verify ip address
 					del tmp_scgap_ip
 
-					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in re.findall("(.{1})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
+					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
 					scgap_extip = ipaddress.IPv4Address(tmp_scgap_extip)  # verify ext. ip address
 					del tmp_scgap_extip
 				else:
