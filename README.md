@@ -21,6 +21,7 @@ In addition you can query performance data of the connected access points.
   - nagiosplugin
   - pysnmp
   - configparser
+  - ipaddress (python3 backport)
 
 ## Manual installation on your Nagios Host
 ```
