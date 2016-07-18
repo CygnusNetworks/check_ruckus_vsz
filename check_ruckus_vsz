@@ -222,18 +222,10 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				num_ap += 1
 
-				if isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):  # different behaviour for different ipaddress module versions
-					tmp_scgap_ipv6addr = ':'.join('%02x%02x' % (ord(x[0]), ord(x[1])) for x in re.findall("(.{2})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
-					scgap_ipv6addr = ipaddress.IPv6Address(tmp_scgap_ipv6addr)  # verify ipv6 address
-					del tmp_scgap_ipv6addr
-
-					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
-					scgap_ip = ipaddress.IPv4Address(tmp_scgap_ip)  # verify ip address
-					del tmp_scgap_ip
-
-					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
-					scgap_extip = ipaddress.IPv4Address(tmp_scgap_extip)  # verify ext. ip address
-					del tmp_scgap_extip
+				if isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):  # different behaviour for different ipaddress module backports
+					scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
+					scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
+					scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
 				else:
 					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])
 					scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
@@ -274,18 +266,10 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_mac_parts = list(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
 				scgap_mac = ':'.join(scgap_mac_parts)
 
-				if isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):  # different behaviour for different ipaddress module versions
-					tmp_scgap_ipv6addr = ':'.join('%02x%02x' % (ord(x[0]), ord(x[1])) for x in re.findall("(.{2})", scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
-					scgap_ipv6addr = ipaddress.IPv6Address(tmp_scgap_ipv6addr)  # verify ipv6 address
-					del tmp_scgap_ipv6addr
-
-					tmp_scgap_ip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
-					scgap_ip = ipaddress.IPv4Address(tmp_scgap_ip)  # verify ip address
-					del tmp_scgap_ip
-
-					tmp_scgap_extip = '.'.join(str(ord(x[0])) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
-					scgap_extip = ipaddress.IPv4Address(tmp_scgap_extip)  # verify ext. ip address
-					del tmp_scgap_extip
+				if isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):  # different behaviour for different ipaddress module backports
+					scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
+					scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
+					scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
 				else:
 					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])
 					scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
