@@ -321,7 +321,7 @@ def main():
 	argp.add_argument('-o', '--output-dir', help='AP check config directory for creating nagios configs for access points', default=None)
 	argp.add_argument('--host-template', help='Nagios host template', default='generic-host')
 	argp.add_argument('--service-template', help='Nagios service template', default='generic-service-perfdata')
-	argp.add_argument('--hostname-format', help='Nagios hostname format', default='{ip}')
+	argp.add_argument('--hostname-format', help='Nagios hostname format', default='{name}')
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
 	args = argp.parse_args()
 
