@@ -102,7 +102,6 @@ class RUCKUSAP(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
 		_log.debug("Starting SNMP polling of host %s", self.args.host)
 
 		oid_suffix = '6.' + '.'.join(str(int(x, 16)) for x in self.args.scgap.split(':'))
-		print(oid_suffix)
 
 		_log.debug(oid_suffix)
 
