@@ -52,9 +52,9 @@ def get_namedvalues(mibname, objectname):
 def snmp_auth_data(community, version=V2C, snmp_id=None):
 	if snmp_id is None:
 		sha_256 = hashlib.sha256()  # pylint: disable=E1101
-		sha_256.update(community)
-		sha_256.update(str(time.time() * 1000))
-		sha_256.update(str(random.random()))
+		sha_256.update(community.encode('ascii'))
+		sha_256.update(str(time.time() * 1000).encode('ascii'))
+		sha_256.update(str(random.random()).encode('ascii'))
 		snmp_id = sha_256.hexdigest()[:32]
 	return cmdgen.CommunityData(snmp_id, community, version)
 
@@ -295,8 +295,8 @@ class SnmpVarBinds(object):
 
 	def get_by_dict(self, oid):
 		self.dictify()
-		if oid is None and len(self.__varbinds_dict.keys()) == 1:
-			oid = self.__varbinds_dict.keys()[0]
+		if oid is None and len(list(self.__varbinds_dict.keys())) == 1:
+			oid = list(self.__varbinds_dict.keys())[0]
 		elif oid is None:
 			raise RuntimeError("Cannot query oid %r if multiple varBinds keys are present")
 		if isinstance(oid, str):
@@ -320,7 +320,7 @@ class SnmpVarBinds(object):
 		return self.get_by_dict(oid)
 
 	def get_named_value(self, oid=None):
-		name = nodename(self.get_dict().keys()[0]).split("::")
+		name = nodename(list(self.get_dict().keys())[0]).split("::")
 		mibname = name[0]
 		objectname = name[1].split(".0")[0]
 		namedvalues = get_namedvalues(mibname, objectname)
@@ -335,7 +335,7 @@ class SnmpVarBinds(object):
 
 	def __get_json(self, keytype=str):
 		json = {}
-		for key, value in self.get_dict().items():
+		for key, value in list(self.get_dict().items()):
 			if isinstance(value, univ.OctetString):
 				value = str(value)
 			elif isinstance(value, univ.Integer):
