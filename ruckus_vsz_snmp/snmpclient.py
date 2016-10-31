@@ -196,7 +196,7 @@ class SnmpClient(object):  # pylint: disable=R0902
 		"""Get a complete subtable"""
 		assert self.alive is True
 		oids_trans = nodeids(oids)
-		(error_indication, error_status, error_index, varbinds) = cmdgen.CommandGenerator().nextCmd(self.auth, cmdgen.UdpTransportTarget((self.host, self.port), timeout=self.timeout, retries=self.retries), *oids_trans)
+		(error_indication, error_status, error_index, varbinds) = cmdgen.CommandGenerator().bulkCmd(self.auth, cmdgen.UdpTransportTarget((self.host, self.port), timeout=self.timeout, retries=self.retries), 0, 25, *oids_trans)
 		if error_indication or error_status:
 			self.__set_error(error_indication, error_status, error_index, varbinds)
 			raise SnmpError("SNMP getnext on %s of oid %r failed" % (self.host, oids), error_indication, error_status, error_index, varbinds)
