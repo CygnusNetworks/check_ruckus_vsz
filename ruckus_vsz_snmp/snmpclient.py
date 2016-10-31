@@ -23,8 +23,15 @@ __mibViewController = view.MibViewController(__mibBuilder)
 
 def add_mib_path(path):
 	"""Add a directory to the MIB search path"""
-	if path not in __mibBuilder.getMibPath() and os.path.isdir(path):
-		__mibBuilder.setMibPath(*(__mibBuilder.getMibPath() + (path, )))
+	if not os.path.isdir(path):
+		return
+
+	for source in __mibBuilder.getMibSources():
+		if isinstance(source, builder.DirMibSource):
+			if source.fullPath() == path:
+				return
+
+	__mibBuilder.setMibSources(*(__mibBuilder.getMibSources() + (builder.DirMibSource(path), )))
 
 
 def load_mibs(*modules):
