@@ -202,7 +202,11 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		num_ap = 0
 		num_sta = 0
 		for scgapmac in scgapmacs:
-			scgap_mac_parts = list(hex(ord(x))[2:].upper().rjust(2, '0') for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac])
+			scgap_mac_bytes = scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac)
+			if sys.version_info.major == 3:
+				scgap_mac_parts = list("%02X" % x for x in scgap_mac_bytes)
+			else:
+				scgap_mac_parts = list("%02X" % ord(x) for x in scgap_mac_bytes)
 			scgap_mac = ':'.join(scgap_mac_parts)
 
 			if self.args.output_dir is None:
@@ -226,7 +230,11 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				num_ap += 1
 
-			if isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):  # different behaviour for different ipaddress module backports
+			if sys.version_info.major == 3:  # different behaviour for different python and ipaddress module versions...
+				scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac].encode('ascii'))
+				scgap_ip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac).prettyPrint())
+				scgap_extip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac).prettyPrint())
+			elif isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):
 				scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
 				scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
 				scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
