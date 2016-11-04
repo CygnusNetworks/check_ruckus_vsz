@@ -9,6 +9,7 @@ import configparser
 import nagiosplugin
 import nagiosplugin.result
 import nagiosplugin.state
+import pysnmp.proto.rfc1905
 
 import ruckus_vsz_snmp
 import ruckus_vsz_snmp.snmpclient
@@ -114,6 +115,8 @@ class RUCKUSAP(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
 
 		# wlan stats
 		num_sta = self.snmpclient.get("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s" % oid_suffix).get_value()
+		if isinstance(num_sta, pysnmp.proto.rfc1905.NoSuchInstance):
+			raise nagiosplugin.CheckError("Unknown Access Point %s" % self.args.scgap)
 		_log.debug("AP %s number of stations is %d", self.args.scgap, num_sta)
 		yield nagiosplugin.Metric('num_sta', num_sta)
 
