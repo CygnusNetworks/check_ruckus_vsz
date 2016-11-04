@@ -23,11 +23,18 @@ _log = logging.getLogger('nagiosplugin')
 
 class RUCKUSVSZSummary(nagiosplugin.Summary):
 	def ok(self, results):
-		summary = '%d stations connected ' % (results['num_sta'].metric.value)
-		summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
-		summary += 'DISK:(free %.1f / %.1f GB -- %.1f%%) ' % (results['data_free'].metric.value, results['data_size'].metric.value, results['data_free_percent'].metric.value)
-		summary += 'MEM:(free %.1f / %.1f GB -- %.1f%%) ' % (results['mem_free'].metric.value, results['mem_size'].metric.value, results['mem_free_percent'].metric.value)
-		summary += 'LOAD:(1min %.2f, 5min %.2f, 15min %.2f) ' % (results['load_1min'].metric.value, results['load_5min'].metric.value, results['load_15min'].metric.value)
+		if 'error_status' in results['reachable'].metric.value:
+			summary = 'Device is not reachable through SNMP with error %s' % results['reachable'].metric.value['error_status']
+		else:
+			try:
+				summary = '%d stations connected ' % (results['num_sta'].metric.value)
+				summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
+				summary += 'DISK:(free %.1f / %.1f GB -- %.1f%%) ' % (results['data_free'].metric.value, results['data_size'].metric.value, results['data_free_percent'].metric.value)
+				summary += 'MEM:(free %.1f / %.1f GB -- %.1f%%) ' % (results['mem_free'].metric.value, results['mem_size'].metric.value, results['mem_free_percent'].metric.value)
+				summary += 'LOAD:(1min %.2f, 5min %.2f, 15min %.2f) ' % (results['load_1min'].metric.value, results['load_5min'].metric.value, results['load_15min'].metric.value)
+			except KeyError as _:
+				summary = "No data available"
+
 		return summary
 
 	def problem(self, results):
