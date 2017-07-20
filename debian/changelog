@@ -1,3 +1,9 @@
+check-ruckus-vsz (0.11+debian1) UNRELEASED; urgency=low
+
+  * Version bump
+
+ -- Peter Adam <p.adam@cygnusnetworks.de>  Thu, 20 Jul 2017 15:14:50 +0200
+
 check-ruckus-vsz (0.10+debian2) jessie; urgency=low
 
   * Various bug fixes
