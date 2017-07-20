@@ -1,4 +1,11 @@
-check-ruckus-vsz (0.10+debian1) UNRELEASED; urgency=low
+check-ruckus-vsz (0.10+debian2) UNRELEASED; urgency=low
+
+  * Various bug fixes
+  * Use AP names as hostname for nagios check
+
+ -- Peter Adam <p.adam@cygnusnetworks.de>  Thu, 20 Jul 2017 14:43:20 +0200
+
+check-ruckus-vsz (0.10+debian1) jessie; urgency=low
 
   * Initial version
 
