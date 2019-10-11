@@ -1,4 +1,4 @@
-check-ruckus-vsz (0.12+cygnus1) UNRELEASED; urgency=low
+check-ruckus-vsz (0.12+cygnus1) buster; urgency=low
 
   * Switch to python3
 
