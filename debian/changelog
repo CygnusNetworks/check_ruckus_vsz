@@ -1,3 +1,9 @@
+check-ruckus-vsz (0.13+cygnus1) UNRELEASED; urgency=low
+
+  * Reformat hostnames to generate valid AP fqdn
+
+ -- Peter Adam <p.adam@cygnusnetworks.de>  Tue, 15 Oct 2019 13:45:55 +0200
+
 check-ruckus-vsz (0.12+cygnus1) UNRELEASED; urgency=low
 
   * Switch to python3

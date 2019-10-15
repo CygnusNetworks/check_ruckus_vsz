@@ -253,7 +253,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % scgapmac]
 			scgap_name = re.sub(r'\s', '_', scgap_name)  # whitespace -> _
 			scgap_name = re.sub(r'[^A-Za-z0-9_-]', '', scgap_name)  # only allow certain characters in hostname
-			scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name)
+			scgap_hostname = re.sub(r'[^.a-zA-Z0-9-]', "-", self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name).lower())
 
 			if self.args.output_dir is None:
 				_log.debug("Device %s AP %s ipv6 address is %s", self.args.host, scgap_mac, scgap_ipv6addr)
