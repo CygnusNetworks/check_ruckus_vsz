@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 import re
+import socket
 import sys
 
 import configparser
@@ -250,10 +251,11 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
 				scgap_extip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
 
+			scgap_model = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s' % scgapmac]
 			scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % scgapmac]
-			scgap_name = re.sub(r'\s', '_', scgap_name)  # whitespace -> _
-			scgap_name = re.sub(r'[^A-Za-z0-9_-]', '', scgap_name)  # only allow certain characters in hostname
-			scgap_hostname = re.sub(r'[^.a-zA-Z0-9-]', "-", self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name).lower())
+			scgap_name = re.sub(r'[\s_]', '-', scgap_name)  # whitespace / _ -> -
+			scgap_name = re.sub(r'[^A-Za-z0-9-]', '', scgap_name)  # only allow certain characters in hostname
+			scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name, model=scgap_model.lower(), domain=self.args.domain).lower()
 
 			if self.args.output_dir is None:
 				_log.debug("Device %s AP %s ipv6 address is %s", self.args.host, scgap_mac, scgap_ipv6addr)
@@ -317,7 +319,8 @@ def main():
 	argp.add_argument('-o', '--output-dir', help='AP check config directory for creating nagios configs for access points', default=None)
 	argp.add_argument('--host-template', help='Nagios host template', default='generic-host')
 	argp.add_argument('--service-template', help='Nagios service template', default='generic-service-perfdata')
-	argp.add_argument('--hostname-format', help='Nagios hostname format', default='{name}')
+	argp.add_argument('--hostname-format', help='Nagios hostname format', default='{model}-{name}.{domain}')
+	argp.add_argument('--domain', help='Domain name for Nagios hostnames', default=socket.getfqdn().split('.', 1)[1])
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
 	args = argp.parse_args()
 
