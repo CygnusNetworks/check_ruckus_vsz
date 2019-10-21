@@ -28,7 +28,7 @@ class RUCKUSVSZSummary(nagiosplugin.Summary):
 			summary = 'Device is not reachable through SNMP with error %s' % results['reachable'].metric.value['error_status']
 		else:
 			try:
-				summary = '%d stations connected ' % (results['num_sta'].metric.value)
+				summary = '%d stations connected ' % results['num_sta'].metric.value
 				summary += 'AP:(monitored %d, connected %d, configured %d) ' % (results['num_ap'].metric.value, results['num_ap_connected'].metric.value, results['num_ap_configured'].metric.value)
 				summary += 'DISK:(free %.1f / %.1f GB -- %.1f%%) ' % (results['data_free'].metric.value, results['data_size'].metric.value, results['data_free_percent'].metric.value)
 				summary += 'MEM:(free %.1f / %.1f GB -- %.1f%%) ' % (results['mem_free'].metric.value, results['mem_size'].metric.value, results['mem_free_percent'].metric.value)
@@ -63,8 +63,7 @@ class BoolContext(nagiosplugin.Context):  # pylint: disable=too-few-public-metho
 	def evaluate(self, metric, resource):
 		if metric.value:
 			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
+		return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
 
 
 class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
@@ -76,16 +75,14 @@ class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
 	def evaluate(self, metric, resource):
 		if metric.value:
 			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
+		return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
 
 
 class SNMPContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
 	def evaluate(self, metric, resource):
 		if metric.value["status"]:
 			return self.result_cls(nagiosplugin.state.Ok, None, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Critical, "Unreachable - %s" % metric.value["error_indication"], metric)
+		return self.result_cls(nagiosplugin.state.Critical, "Unreachable - %s" % metric.value["error_indication"], metric)
 
 
 class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
@@ -100,7 +97,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		self.snmpclient = ruckus_vsz_snmp.snmpclient.SnmpClient(self.args.host, ruckus_vsz_snmp.snmpclient.snmp_auth_data_v2c(community=self.args.community), timeout=self.args.snmp_timeout, retries=self.args.retries)
 
 		if not self.snmpclient.alive:
-			_log.warn("Device is not reachable through SNMP with error %s", self.snmpclient.error_status)
+			_log.warning("Device is not reachable through SNMP with error %s", self.snmpclient.error_status)
 			yield nagiosplugin.Metric('reachable', dict(status=self.snmpclient.alive, error_indication=self.snmpclient.error_indication, error_status=self.snmpclient.error_status, error_varbinds=self.snmpclient.error_varbinds))
 			return
 
@@ -164,7 +161,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			hrstoragetable_varbinds = self.snmpclient.gettable("HOST-RESOURCES-MIB::hrStorageTable")
 			hrstoragetable = hrstoragetable_varbinds.get_json_name()
 			hrstorage_descr_prefix = 'HOST-RESOURCES-MIB::hrStorageDescr.'
-			hrstorageids = list(x[len(hrstorage_descr_prefix):] for x in hrstoragetable.keys() if x.startswith(hrstorage_descr_prefix))
+			hrstorageids = list(x[len(hrstorage_descr_prefix):] for x in hrstoragetable if x.startswith(hrstorage_descr_prefix))
 			data_size = 'U'
 			data_free = 'U'
 			phys_mem_size = 'U'
@@ -204,7 +201,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		scgaptable_varbinds = self.snmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
 		scgaptable = scgaptable_varbinds.get_json_name()
 		scgapmac_prefix = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.'
-		scgapmacs = list(x[len(scgapmac_prefix):] for x in scgaptable.keys() if x.startswith(scgapmac_prefix))
+		scgapmacs = list(x[len(scgapmac_prefix):] for x in scgaptable if x.startswith(scgapmac_prefix))
 		num_ap_connected = 0
 		num_ap_configured = 0
 		num_ap = 0
@@ -407,6 +404,7 @@ def main():
 		else:
 			print("Config directory %s does not exist or is not writable" % args.output_dir)
 			sys.exit(1)
+
 
 if __name__ == "__main__":
 	main()

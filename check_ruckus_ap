@@ -59,8 +59,7 @@ class BoolContext(nagiosplugin.Context):  # pylint: disable=too-few-public-metho
 	def evaluate(self, metric, resource):
 		if metric.value:
 			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
+		return self.result_cls(nagiosplugin.state.Critical, self.crit_text, metric)
 
 
 class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
@@ -72,16 +71,14 @@ class BoolContextWarning(BoolContext):  # pylint: disable=too-few-public-methods
 	def evaluate(self, metric, resource):
 		if metric.value:
 			return self.result_cls(nagiosplugin.state.Ok, self.ok_text, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
+		return self.result_cls(nagiosplugin.state.Warn, self.warn_text, metric)
 
 
 class SNMPContext(nagiosplugin.Context):  # pylint: disable=too-few-public-methods
 	def evaluate(self, metric, resource):
 		if metric.value["status"]:
 			return self.result_cls(nagiosplugin.state.Ok, None, metric)
-		else:
-			return self.result_cls(nagiosplugin.state.Critical, "Unreachable - %s" % metric.value["error_indication"], metric)
+		return self.result_cls(nagiosplugin.state.Critical, "Unreachable - %s" % metric.value["error_indication"], metric)
 
 
 class RUCKUSAP(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
@@ -96,7 +93,7 @@ class RUCKUSAP(nagiosplugin.Resource):  # pylint: disable=too-few-public-methods
 		self.snmpclient = ruckus_vsz_snmp.snmpclient.SnmpClient(self.args.host, ruckus_vsz_snmp.snmpclient.snmp_auth_data_v2c(community=self.args.community), timeout=self.args.snmp_timeout, retries=self.args.retries)
 
 		if not self.snmpclient.alive:
-			_log.warn("Device is not reachable through SNMP with error %s", self.snmpclient.error_status)
+			_log.warning("Device is not reachable through SNMP with error %s", self.snmpclient.error_status)
 			yield nagiosplugin.Metric('reachable', dict(status=self.snmpclient.alive, error_indication=self.snmpclient.error_indication, error_status=self.snmpclient.error_status, error_varbinds=self.snmpclient.error_varbinds))
 			return
 
