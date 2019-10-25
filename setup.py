@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='check_ruckus_vsz',
-	version='0.12',
+	version='0.13',
 	description='Nagios Check for Ruckus SCG',
 	author='Lukas Schauer',
 	author_email='l.schauer@cygnusnetworks.de',
