@@ -287,7 +287,6 @@ class SnmpVarBinds(object):
 		return text
 
 	def dictify(self):
-		_log.debug("dictitfy called")
 		if self.__varbinds_dict is None:
 			self.__varbinds_dict = {}
 			for entry in self.__varbinds:
@@ -296,11 +295,18 @@ class SnmpVarBinds(object):
 					for oid, value in entry:
 						# always store internal data using rfc1902.ObjectNames, which are pyasn1 ObjectIdentifiers, which behave like tuples
 						if not value.isSameTypeWith(rfc1905.noSuchObject):
+							_log.debug("oid/value is %s=%r", oid, value)
 							self.__varbinds_dict[rfc1902.ObjectName(oid)] = value
+						else:
+							_log.debug("oid %s is noSuchObject", oid)
+
 				else:
 					oid, value = entry
 					if not value.isSameTypeWith(rfc1905.noSuchObject):
+						_log.debug("oid/value is %s=%r", oid, value)
 						self.__varbinds_dict[rfc1902.ObjectName(oid)] = value
+					else:
+						_log.debug("oid %s is noSuchObject", oid)
 
 	def get_by_dict(self, oid):
 		self.dictify()
