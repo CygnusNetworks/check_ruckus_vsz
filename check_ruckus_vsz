@@ -105,8 +105,8 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		yield nagiosplugin.Metric('reachable', dict(status=True))
 		_log.debug("Found Sysname %s and sysdescr %s", self.snmpclient.sysname, self.snmpclient.sysdescr)
 
-		if not str(self.snmpclient.sysdescr).startswith("SmartCell Gateway"):
-			raise nagiosplugin.CheckError("Device is not a Ruckus SCG device - System description is %s" % self.snmpclient.sysdescr)
+		if not str(self.snmpclient.sysdescr) in ["SmartCell Gateway", "SmartZone"]:
+			raise nagiosplugin.CheckError("Device is not a Ruckus SmartCell Gateway/SmartZone device - System description is %s" % self.snmpclient.sysdescr)
 
 		if self.args.output_dir is None:
 			_log.debug("Starting SNMP polling of host %s", self.args.host)
