@@ -7,13 +7,13 @@ import os
 import random
 import time
 
-import pyasn1
 import pysnmp
 
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.smi import builder, view, error
 from pysnmp.proto import rfc1902, rfc1905
 
+import pyasn1
 from pyasn1.type import univ
 
 _log = logging.getLogger('nagiosplugin')
@@ -101,7 +101,7 @@ def nodename(oid):
 	"""Translate dotted-decimal oid or oid tuple to symbolic name"""
 	if isinstance(oid, str):
 		oid = rfc1902.ObjectName(oid)
-	oid = __mibViewController.getNodeLocation(oid)  # pylint:disable=R0204
+	oid = __mibViewController.getNodeLocation(oid)
 	name = '::'.join(oid[:-1])
 	noid = '.'.join([str(x) for x in oid[-1]])
 	if noid:
@@ -221,17 +221,17 @@ class SnmpClient(object):  # pylint: disable=R0902
 						break
 				if has_str:  # if oid is a tuple containing strings, assume translation using cmdgen.MibVariable.
 					# value must then be a Python type
-					assert isinstance(value, int) or isinstance(value, str) or isinstance(value, bool)
+					assert isinstance(value, (bool, int, str))
 					oidvalues_trans.append((cmdgen.MibVariable(*oid), value))
 				else:
 					# value must be a rfc1902/pyasn1 type
 					if not oid[-1] == 0:
-						assert isinstance(value, univ.Integer) or isinstance(value, univ.OctetString) or isinstance(value, univ.ObjectIdentifier)
+						assert isinstance(value, (univ.Integer, univ.OctetString, univ.ObjectIdentifier))
 					oidvalues_trans.append((oid, value))
 			elif isinstance(oid, str):  # if oid is a string, assume nodeid lookup
 				# value must then be a rfc1902/pyasn1 type, if oid is not a scalar
 				if not oid.endswith(".0"):
-					assert isinstance(value, univ.Integer) or isinstance(value, univ.OctetString) or isinstance(value, univ.ObjectIdentifier)
+					assert isinstance(value, (univ.Integer, univ.OctetString, univ.ObjectIdentifier))
 				oidvalues_trans.append((nodeid(oid), value))
 
 		(error_indication, error_status, error_index, varbinds) = \
@@ -316,12 +316,11 @@ class SnmpVarBinds(object):
 			if value.isSameTypeWith(rfc1905.noSuchObject):
 				return None
 			return value
-		elif isinstance(oid, tuple) or isinstance(oid, rfc1902.ObjectName):
+		elif isinstance(oid, (tuple, rfc1902.ObjectName)):
 			value = self.__varbinds_dict[oid]
 			if value.isSameTypeWith(rfc1905.noSuchObject):
 				return None
-			else:
-				return value
+			return value
 		else:
 			raise RuntimeError("Unknown format of oid %r with type %s" % (oid, oid.__class__.__name__))
 
@@ -348,7 +347,7 @@ class SnmpVarBinds(object):
 			if isinstance(value, univ.OctetString):
 				value = str(value)
 			elif isinstance(value, univ.Integer):
-				value = int(value)  # pylint:disable=R0204
+				value = int(value)
 			elif isinstance(value, univ.ObjectIdentifier):
 				value = str(value)
 			else:
