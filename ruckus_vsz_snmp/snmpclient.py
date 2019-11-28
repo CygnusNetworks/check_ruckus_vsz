@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
+import logging
 import os
 import random
 import time
@@ -11,6 +12,8 @@ from pysnmp.smi import builder, view, error
 from pysnmp.proto import rfc1902, rfc1905
 
 from pyasn1.type import univ
+
+_log = logging.getLogger('nagiosplugin')
 
 # Snmp version constants
 V1 = 0
@@ -280,9 +283,11 @@ class SnmpVarBinds(object):
 		return text
 
 	def dictify(self):
+		_log.debug("dictitfy called")
 		if self.__varbinds_dict is None:
 			self.__varbinds_dict = {}
 			for entry in self.__varbinds:
+				_log.debug("parsing entry %r", entry)
 				if isinstance(entry, list):
 					for oid, value in entry:
 						# always store internal data using rfc1902.ObjectNames, which are pyasn1 ObjectIdentifiers, which behave like tuples
@@ -298,7 +303,7 @@ class SnmpVarBinds(object):
 		if oid is None and len(list(self.__varbinds_dict.keys())) == 1:
 			oid = list(self.__varbinds_dict.keys())[0]
 		elif oid is None:
-			raise RuntimeError("Cannot query oid %r if multiple varBinds keys are present")
+			raise RuntimeError("Cannot query oid %r if multiple varBinds keys are present: %r" % (oid, self.__varbinds_dict.keys()))
 		if isinstance(oid, str):
 			if oid in self.__varbinds_dict:
 				value = self.__varbinds_dict[oid]
