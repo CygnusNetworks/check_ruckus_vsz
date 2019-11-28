@@ -7,6 +7,9 @@ import os
 import random
 import time
 
+import pyasn1
+import pysnmp
+
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.smi import builder, view, error
 from pysnmp.proto import rfc1902, rfc1905
@@ -155,6 +158,7 @@ class SnmpClient(object):  # pylint: disable=R0902
 		self.timeout = timeout
 		self.retries = retries
 		self.error_indication = self.error_status = self.error_index = self.error_varbinds = None
+		_log.debug("PySNMP version is %s - pyasn1 version is %s", pysnmp.__version__, pyasn1.__version__)
 
 		(error_indication, error_status, error_index, varbinds) = cmdgen.CommandGenerator().getCmd(
 			auth,
