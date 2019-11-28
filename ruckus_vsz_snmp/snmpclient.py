@@ -312,8 +312,11 @@ class SnmpVarBinds(object):
 		self.dictify()
 		if oid is None and len(list(self.__varbinds_dict.keys())) == 1:
 			oid = list(self.__varbinds_dict.keys())[0]
-		elif oid is None:
+		elif oid is None and len(list(self.__varbinds_dict.keys())) > 1:
 			raise RuntimeError("Cannot query oid %r if multiple varBinds keys are present: %r" % (oid, self.__varbinds_dict.keys()))
+		else:
+			_log.debug("noSuchObject found - returning None")
+			return None
 		if isinstance(oid, str):
 			if oid in self.__varbinds_dict:
 				value = self.__varbinds_dict[oid]

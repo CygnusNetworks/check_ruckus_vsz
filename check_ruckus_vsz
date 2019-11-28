@@ -117,36 +117,44 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			# stats rx
 			stats_rx_pkts = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalRxPkts.0").get_value()
 			_log.debug("Device %s number of received packets is %d", self.args.host, stats_rx_pkts)
-			yield nagiosplugin.Metric('stats_rx_pkts', stats_rx_pkts)
+			if stats_rx_pkts is not None:
+				yield nagiosplugin.Metric('stats_rx_pkts', stats_rx_pkts)
 
 			stats_rx_bytes = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalRxBytes.0").get_value()
 			_log.debug("Device %s number of received bytes is %d", self.args.host, stats_rx_bytes)
-			yield nagiosplugin.Metric('stats_rx_bytes', stats_rx_bytes)
+			if stats_rx_bytes is not None:
+				yield nagiosplugin.Metric('stats_rx_bytes', stats_rx_bytes)
 
 			stats_rx_multicast = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalRxMulticast.0").get_value()
 			_log.debug("Device %s number of received multicast packets is %d", self.args.host, stats_rx_multicast)
-			yield nagiosplugin.Metric('stats_rx_multicast', stats_rx_multicast)
+			if stats_rx_multicast is not None:
+				yield nagiosplugin.Metric('stats_rx_multicast', stats_rx_multicast)
 
 			# stats tx
 			stats_tx_pkts = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxPkts.0").get_value()
 			_log.debug("Device %s number of sent packets is %d", self.args.host, stats_tx_pkts)
-			yield nagiosplugin.Metric('stats_tx_pkts', stats_tx_pkts)
+			if stats_tx_pkts is not None:
+				yield nagiosplugin.Metric('stats_tx_pkts', stats_tx_pkts)
 
 			stats_tx_bytes = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxBytes.0").get_value()
 			_log.debug("Device %s number of sent bytes is %d", self.args.host, stats_tx_bytes)
-			yield nagiosplugin.Metric('stats_tx_bytes', stats_tx_bytes)
+			if stats_tx_bytes is not None:
+				yield nagiosplugin.Metric('stats_tx_bytes', stats_tx_bytes)
 
 			stats_tx_multicast = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxMulticast.0").get_value()
 			_log.debug("Device %s number of sent multicast packets is %d", self.args.host, stats_tx_multicast)
-			yield nagiosplugin.Metric('stats_tx_multicast', stats_tx_multicast)
+			if stats_tx_multicast is not None:
+				yield nagiosplugin.Metric('stats_tx_multicast', stats_tx_multicast)
 
 			stats_tx_fail = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxFail.0").get_value()
 			_log.debug("Device %s number of packets failed to transmit is %d", self.args.host, stats_tx_fail)
-			yield nagiosplugin.Metric('stats_tx_fail', stats_tx_fail)
+			if stats_tx_fail is not None:
+				yield nagiosplugin.Metric('stats_tx_fail', stats_tx_fail)
 
 			stats_tx_retry = self.snmpclient.get("RUCKUS-SCG-SYSTEM-MIB::ruckusSystemStatsWLANTotalTxRetry.0").get_value()
 			_log.debug("Device %s number of packets retried to transmit is %d", self.args.host, stats_tx_retry)
-			yield nagiosplugin.Metric('stats_tx_retry', stats_tx_retry)
+			if stats_tx_retry is not None:
+				yield nagiosplugin.Metric('stats_tx_retry', stats_tx_retry)
 
 			# load
 			load_1min = float(str(self.snmpclient.get("UCD-SNMP-MIB::laLoad.1").get_value()))
