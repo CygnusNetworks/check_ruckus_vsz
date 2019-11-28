@@ -2,14 +2,12 @@ Source: check-ruckus-vsz
 Section: python
 Priority: optional
 Maintainer: Lukas Schauer <l.schauer@cygnusnetworks.de>
-Build-Depends: debhelper (>= 9), python-all, python-setuptools, dh-python
+Build-Depends: debhelper (>= 9), python3-all, python3-setuptools, dh-python
 Standards-Version: 3.9.6
-X-Python-Version: >=2.7
 
 Package: check-ruckus-vsz
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}
 Description: Ruckus SCG Nagios check
  Nagios/Icinga Plugin for Ruckus Virtual Smartzone systems
  using SNMP to query the device.
-
