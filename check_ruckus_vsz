@@ -216,6 +216,9 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		num_sta = 0
 		for scgapmac in scgapmacs:
 			scgap_mac_bytes = scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac)
+			if scgap_mac_bytes is None:
+				_log.debug("Mac address of AP %s results in empty scgap_mac_bytes", scgapmac)
+				continue
 			if sys.version_info.major == 3:
 				scgap_mac_parts = list("%02X" % x for x in scgap_mac_bytes)
 			else:
