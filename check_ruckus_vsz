@@ -206,19 +206,24 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			yield nagiosplugin.Metric('mem_free_percent', 'U' if phys_mem_size == 'U' else ((mem_free / phys_mem_size) * 100.0))
 
 		# aps
+		# _log.debug("Querying SCGAPTable")
 		scgaptable_varbinds = self.snmpclient.gettable("RUCKUS-SCG-WLAN-MIB::ruckusSCGAPTable")
 		scgaptable = scgaptable_varbinds.get_json_name()
+		for e in scgaptable:
+			_log.debug("SCGAPTable: %s = %s", e, scgaptable[e])
+
 		scgapmac_prefix = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.'
 		scgapmacs = list(x[len(scgapmac_prefix):] for x in scgaptable if x.startswith(scgapmac_prefix))
+		_log.debug("scgapmacs is %s", scgapmacs)
+
 		num_ap_connected = 0
 		num_ap_configured = 0
 		num_ap = 0
 		num_sta = 0
 		for scgapmac in scgapmacs:
-			scgap_mac_bytes = scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac)
-			if scgap_mac_bytes is None:
-				_log.debug("Mac address of AP %s results in empty scgap_mac_bytes", scgapmac)
-				continue
+			oid = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac
+			# _log.debug("Querying oid %s", oid)
+			scgap_mac_bytes = scgaptable[oid]
 			if sys.version_info.major == 3:
 				scgap_mac_parts = list("%02X" % x for x in scgap_mac_bytes)
 			else:
