@@ -224,7 +224,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 			oid = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac
 			# _log.debug("Querying oid %s", oid)
 			scgap_mac_bytes = scgaptable[oid]
-			if sys.version_info.major == 3:
+			if sys.version_info.major >= 3:
 				scgap_mac_parts = list("%02X" % x for x in scgap_mac_bytes)
 			else:
 				scgap_mac_parts = list("%02X" % ord(x) for x in scgap_mac_bytes)
