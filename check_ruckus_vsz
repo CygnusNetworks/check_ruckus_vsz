@@ -220,30 +220,32 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 		num_ap_configured = 0
 		num_ap = 0
 		num_sta = 0
-		for scgapmac in scgapmacs:
-			oid = 'RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % scgapmac
-			# _log.debug("Querying oid %s", oid)
-			scgap_mac_bytes = scgaptable[oid]
-			if sys.version_info.major >= 3:
-				scgap_mac_parts = list("%02X" % x for x in scgap_mac_bytes)
-			else:
-				scgap_mac_parts = list("%02X" % ord(x) for x in scgap_mac_bytes)
+		for mac_numeric in scgapmacs:
+			_log.debug("Parsing access point with numeric mac %s", mac_numeric)
+			scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % mac_numeric]
+			scgap_name = re.sub(r'[\s_]', '-', scgap_name)  # whitespace / _ -> -
+			scgap_name = re.sub(r'[^A-Za-z0-9-]', '', scgap_name)  # only allow certain characters in hostname
+			scgap_model = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s' % mac_numeric]
+
+			scgap_mac_bytes = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPMac.%s' % mac_numeric]
+			scgap_mac_parts = list("%02X" % ord(x) for x in scgap_mac_bytes)
 			scgap_mac = ':'.join(scgap_mac_parts)
+			_log.debug("Parsing access point with mac %s name %s model %s", scgap_mac, scgap_name, scgap_model)
 
 			if self.args.output_dir is None:
-				scgap_regstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPRegStatus.%s' % scgapmac]
+				scgap_regstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPRegStatus.%s' % mac_numeric]
 				_log.debug("Device %s AP %s registration status is %s", self.args.host, scgap_mac, scgap_regstatus)
 				if not scgap_regstatus == 'Approved':
 					_log.debug("Device %s AP %s is not approved, ignoring.", self.args.host, scgap_mac)
 					continue
 
-				scgap_zone = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPZone.%s' % scgapmac]
+				scgap_zone = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPZone.%s' % mac_numeric]
 				_log.debug("Device %s AP %s zone is %s", self.args.host, scgap_mac, scgap_zone)
 				if not re.match(self.config_parser.get(self.args.host, 'zone_regex'), scgap_zone):
 					_log.debug("Device %s AP %s is in unmonitored zone, ignoring.", self.args.host, scgap_mac)
 					continue
 
-				scgap_group = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGroup.%s' % scgapmac]
+				scgap_group = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPGroup.%s' % mac_numeric]
 				_log.debug("Device %s AP %s group is %s", self.args.host, scgap_mac, scgap_group)
 				if not re.match(self.config_parser.get(self.args.host, 'group_regex'), scgap_group):
 					_log.debug("Device %s AP %s is in unmonitored group, ignoring.", self.args.host, scgap_mac)
@@ -251,24 +253,25 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				num_ap += 1
 
-			if sys.version_info.major >= 3:  # different behaviour for different python and ipaddress module versions...
-				scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac].encode('ascii'))
-				scgap_ip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac).prettyPrint())
-				scgap_extip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac).prettyPrint())
-			elif isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):
-				scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac]))
-				scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac]))
-				scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac]))
-			else:
-				scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac])
-				scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac])
-				scgap_extip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac])
-
-			scgap_model = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPModel.%s' % scgapmac]
-			scgap_name = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPName.%s' % scgapmac]
-			scgap_name = re.sub(r'[\s_]', '-', scgap_name)  # whitespace / _ -> -
-			scgap_name = re.sub(r'[^A-Za-z0-9-]', '', scgap_name)  # only allow certain characters in hostname
-			scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, ipv6=scgap_ipv6addr, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name, model=scgap_model.lower(), domain=self.args.domain).lower()
+			_log.debug("Parsing ips for Access Point name % model %s mac ", scgap_name, scgap_model, scgap_mac)
+			try:
+				if sys.version_info.major >= 3:  # different behaviour for different python and ipaddress module versions...
+					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric].encode('ascii'))
+					scgap_ip = ipaddress.IPv4Address(".".join(str(ord(x)) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric]))
+					scgap_extip = ipaddress.IPv4Address(".".join(str(ord(x)) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric]))
+				# there are two diffent ipaddress implementations present for Python 2.x, which result in different behaviour
+				elif isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):
+					scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]))
+					scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric]))
+					scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric]))
+				else:
+					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric])
+					scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric])
+					scgap_extip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric])
+			except Exception as e:
+				_log.debug("Caught exception on parsing ips %s - skipping ap %s", e, scgap_mac, exc_info=True)
+				continue
+			scgap_hostname = self.args.hostname_format.format(ip=scgap_ip, extip=scgap_extip, mac=scgap_mac_parts, name=scgap_name, model=scgap_model.lower(), domain=self.args.domain).lower()
 
 			if self.args.output_dir is None:
 				_log.debug("Device %s AP %s ipv6 address is %s", self.args.host, scgap_mac, scgap_ipv6addr)
@@ -276,17 +279,17 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				_log.debug("Device %s AP %s external ip address %s", self.args.host, scgap_mac, scgap_extip)
 				_log.debug("Device %s AP %s (generated) hostname is %s", self.args.host, scgap_mac, scgap_hostname)
 
-				scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % scgapmac]
+				scgap_connstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConnStatus.%s' % mac_numeric]
 				_log.debug("Device %s AP %s connection status is %s", self.args.host, scgap_mac, scgap_connstatus)
 				if scgap_connstatus == 'Connect':
 					num_ap_connected += 1
 
-				scgap_num_sta = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s' % scgapmac]
+				scgap_num_sta = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPNumSta.%s' % mac_numeric]
 				_log.debug("Device %s AP %s number of connected stations is %s", self.args.host, scgap_mac, scgap_num_sta)
 				if scgap_connstatus == 'Connect':
 					num_sta += scgap_num_sta
 
-				scgap_configstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConfigStatus.%s' % scgapmac]
+				scgap_configstatus = scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPConfigStatus.%s' % mac_numeric]
 				_log.debug("Device %s AP %s config status is %s", self.args.host, scgap_mac, scgap_configstatus)
 				if scgap_connstatus == 'Connect' and scgap_configstatus == 'Up-to-date':
 					num_ap_configured += 1
