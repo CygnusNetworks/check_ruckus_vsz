@@ -254,18 +254,22 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				num_ap += 1
 
 			_log.debug("Parsing ips for Access Point name % model %s mac ", scgap_name, scgap_model, scgap_mac)
+			scgap_ipv6addr = None
 			try:
 				if sys.version_info.major >= 3:  # different behaviour for different python and ipaddress module versions...
-					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric].encode('ascii'))
+					if len(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]):
+						scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric].encode('ascii'))
 					scgap_ip = ipaddress.IPv4Address(".".join(str(ord(x)) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric]))
 					scgap_extip = ipaddress.IPv4Address(".".join(str(ord(x)) for x in scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric]))
 				# there are two diffent ipaddress implementations present for Python 2.x, which result in different behaviour
 				elif isinstance(ipaddress.ip_network('123.123.123.0/24'), ipaddress.IPv4Network):
-					scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]))
+					if len(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]):
+						scgap_ipv6addr = ipaddress.IPv6Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]))
 					scgap_ip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric]))
 					scgap_extip = ipaddress.IPv4Address(bytearray(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric]))
 				else:
-					scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric])
+					if len(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric]):
+						scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % mac_numeric])
 					scgap_ip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % mac_numeric])
 					scgap_extip = ipaddress.IPv4Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % mac_numeric])
 			except Exception as e:
