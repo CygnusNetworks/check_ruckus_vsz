@@ -251,7 +251,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 				num_ap += 1
 
-			if sys.version_info.major == 3:  # different behaviour for different python and ipaddress module versions...
+			if sys.version_info.major >= 3:  # different behaviour for different python and ipaddress module versions...
 				scgap_ipv6addr = ipaddress.IPv6Address(scgaptable['RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIPV6Addr.%s' % scgapmac].encode('ascii'))
 				scgap_ip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPIp.%s' % scgapmac).prettyPrint())
 				scgap_extip = ipaddress.IPv4Address(scgaptable_varbinds.get_value('RUCKUS-SCG-WLAN-MIB::ruckusSCGAPExtIp.%s' % scgapmac).prettyPrint())
