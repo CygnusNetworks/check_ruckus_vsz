@@ -1,6 +1,7 @@
 # Ruckus Nagios Check for Virtual Smartzone and Access Points
 
 This Nagios/Icinga Check provides the ability to query Ruckus Virtual Smartzone Gateway devices for current system status.
+The plugin has been tested with SmartCell Gateway Versions 3.5 and 5.1.
 
 It will check and generate performance data for:
 
