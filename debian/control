@@ -1,7 +1,7 @@
 Source: check-ruckus-vsz
 Section: python
 Priority: optional
-Maintainer: Lukas Schauer <l.schauer@cygnusnetworks.de>
+Maintainer: Dr. Torge Szczepanek <debian@cygnusnetworks.de>
 Build-Depends: debhelper (>= 9), python3-all, python3-setuptools, dh-python
 Standards-Version: 3.9.6
 

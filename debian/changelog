@@ -1,31 +1,37 @@
+check-ruckus-vsz (0.14+cygnus1) UNRELEASED; urgency=low
+
+  * Fix multiple parsing errors on different controllers, versions
+
+ -- Dr. Torge Szczepanek <debian@cygnusnetworks.de>  Fri, 10 Jan 2020 13:34:07 +0100
+
 check-ruckus-vsz (0.13+cygnus1) UNRELEASED; urgency=low
 
   * Reformat hostnames to generate valid AP fqdn
   * Add AP Model to hostnames
 
- -- Peter Adam <p.adam@cygnusnetworks.de>  Tue, 15 Oct 2019 13:45:55 +0200
+ -- Peter Adam <debiancygnusnetworks.de>  Tue, 15 Oct 2019 13:45:55 +0200
 
 check-ruckus-vsz (0.12+cygnus1) UNRELEASED; urgency=low
 
   * Switch to python3
 
- -- Peter Adam <p.adam@cygnusnetworks.de>  Fri, 11 Oct 2019 11:49:10 +0200
+ -- Peter Adam <debian@cygnusnetworks.de>  Fri, 11 Oct 2019 11:49:10 +0200
 
 check-ruckus-vsz (0.11+debian1) UNRELEASED; urgency=low
 
   * Version bump
 
- -- Peter Adam <p.adam@cygnusnetworks.de>  Thu, 20 Jul 2017 15:14:50 +0200
+ -- Peter Adam <debian@cygnusnetworks.de>  Thu, 20 Jul 2017 15:14:50 +0200
 
 check-ruckus-vsz (0.10+debian2) jessie; urgency=low
 
   * Various bug fixes
   * Use AP names as hostname for nagios check
 
- -- Peter Adam <p.adam@cygnusnetworks.de>  Thu, 20 Jul 2017 14:43:20 +0200
+ -- Peter Adam <debian@cygnusnetworks.de>  Thu, 20 Jul 2017 14:43:20 +0200
 
 check-ruckus-vsz (0.10+debian1) jessie; urgency=low
 
   * Initial version
 
- -- Lukas Schauer <l.schauer@cygnusnetworks.de>  Mon, 09 May 2016 18:35:00 +0200
+ -- Lukas Schauer <debian@cygnusnetworks.de>  Mon, 09 May 2016 18:35:00 +0200
