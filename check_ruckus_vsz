@@ -328,6 +328,12 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 
 @nagiosplugin.guarded
 def main():
+	fqdn = socket.getfqdn()
+	if fqdn and isinstance(fqdn, str) and "." in fqdn:
+		default_domain = fqdn.split('.', 1)[1]
+	else:
+		default_domain = "local"
+
 	argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	argp.add_argument('-v', '--verbose', action='count', default=0)
 	argp.add_argument('-c', '--config', help='config file', default='/etc/check_ruckus_vsz.conf')
@@ -340,7 +346,7 @@ def main():
 	argp.add_argument('--host-template', help='Nagios host template', default='generic-host')
 	argp.add_argument('--service-template', help='Nagios service template', default='generic-service-perfdata')
 	argp.add_argument('--hostname-format', help='Nagios hostname format', default='ruckus-{model}-{name}.{domain}')
-	argp.add_argument('--domain', help='Domain name for Nagios hostnames', default=socket.getfqdn().split('.', 1)[1])
+	argp.add_argument('--domain', help='Domain name for Nagios hostnames', default=default_domain)
 	argp.add_argument('-u', '--uptime', help='Uptime limit in minutes to create warning', type=int, default=120)
 	args = argp.parse_args()
 
