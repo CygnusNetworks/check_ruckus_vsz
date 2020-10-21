@@ -1,30 +1,31 @@
 # Ruckus Nagios Check for Virtual Smartzone and Access Points
 
 This Nagios/Icinga Check provides the ability to query Ruckus Virtual Smartzone Gateway devices for current system status.
+The plugin has been tested with SmartCell Gateway Versions 3.5 and 5.1.
 
 It will check and generate performance data for:
 
-  - number of access points
-  - connected stations
-  - traffic statistics
-  - system load
-  - memory
-  - harddisk
-  - system uptime
+- number of access points
+- connected stations
+- traffic statistics
+- system load
+- memory
+- harddisk
+- system uptime
  
 In addition you can query performance data of the connected access points. 
  
 ## Dependencies
 
-  Implementation is in Python. You will need a installed Python interpreter and the following Python modules:
+Implementation is in Python. You will need a installed Python interpreter and the following Python modules:
   
-  - nagiosplugin
-  - pysnmp
-  - configparser
-  - ipaddress (python3 backport)
+- nagiosplugin
+- pysnmp
+- configparser
+- ipaddress (python3 backport)
 
 ## Manual installation on your Nagios Host
-```
+```Shell
 pip install -r requirements.txt
 python setup.py install
 ln -s /usr/bin/check_ruckus_vsz /usr/lib/nagios/plugins/check_ruckus_vsz
@@ -39,7 +40,7 @@ For Debian you can use the provided Debian package. Debian Jessie and above shou
 
 Nagios Plugin called manually:
 
-```
+```Shell
 ./check_ruckus_vsz -H 10.0.0.1 -C public
 ```
 
@@ -69,7 +70,7 @@ An example config value could be `--hostname_format "ap-{mac[0]}{mac[1]}{mac[2]}
 
 To write these configuration files to a directory add the `-o /path` parameter in a cronjob or similar (don't set this on your nagios check):
 
-```
+```Shell
 ./check_ruckus_vsz -H 10.0.0.1 -C public -o /etc/nagios3/ruckus.d
 ```
 
