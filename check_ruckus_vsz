@@ -301,7 +301,7 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				host_config = os.path.join(self.args.output_dir, "host-ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_'))
 				with open(host_config, "w") as conf:
 					print("Creating Nagios host config file %s" % host_config)
- 					conf.write("define host {\n")
+					conf.write("define host {\n")
 					conf.write("\thost_name\t\t%s\n" % scgap_hostname)
 					conf.write("\taddress\t\t\t%s\n" % self.args.host)
 					conf.write("\thostgroups\t\t%s\n" % self.args.host_groups)
