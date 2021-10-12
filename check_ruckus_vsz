@@ -420,8 +420,8 @@ def main():
 		check.add(PerformanceContext('mem_size'))
 		check.add(nagiosplugin.ScalarContext(
 			'mem_free',
-			warning='%d:' % (config_parser.getint(args.host, 'mem_free_min_warn')),
-			critical='%d:' % (config_parser.getint(args.host, 'mem_free_min_crit')))
+			warning='%d:' % (config_parser.getfloat(args.host, 'mem_free_min_warn')),
+			critical='%d:' % (config_parser.getfloat(args.host, 'mem_free_min_crit')))
 		)
 		check.add(PerformanceContext('mem_free_percent'))
 
