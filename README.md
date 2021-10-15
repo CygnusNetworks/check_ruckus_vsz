@@ -126,6 +126,6 @@ define service {
 # optional ap check command
 define command {
 	command_name	check_ruckus_ap
-	command_line	/usr/lib/nagios/plugins/check_ruckus_ap -C $ARG1$ -H $HOSTADDRESS$ -a $ARG2$
+	command_line	/usr/lib/nagios/plugins/check_ruckus_ap -C $ARG1$ -H $HOSTADDRESS$ -a $HOSTMAC_ADDRESS$
 }
 ```

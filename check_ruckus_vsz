@@ -302,10 +302,12 @@ class RUCKUSVSZ(nagiosplugin.Resource):  # pylint: disable=too-few-public-method
 				with open(host_config, "w") as conf:
 					print("Creating Nagios host config file %s" % host_config)
 					conf.write("define host {\n")
-					conf.write("\tuse\t\t%s\n" % self.args.host_template)
-					conf.write("\thost_name\t%s\n" % scgap_hostname)
-					conf.write("\talias\t\t%s\n" % scgap_hostname)
-					conf.write("\taddress\t\t%s\n" % self.args.host)
+					conf.write("\thost_name\t\t%s\n" % scgap_hostname)
+					conf.write("\taddress\t\t\t%s\n" % self.args.host)
+					conf.write("\thostgroups\t\t%s\n" % self.args.host_groups)
+					conf.write("\tuse\t\t\t%s\n" % self.args.host_template)
+					conf.write("\talias\t\t\t%s\n" % scgap_hostname)
+					conf.write("\t_mac_address\t\t%s\n" % scgap_mac)
 					conf.write("}\n")
 					conf.write("\n")
 				service_config = os.path.join(self.args.output_dir, "service-ruckus-ap-%s.cfg" % scgap_mac.replace(':', '_'))
@@ -344,6 +346,7 @@ def main():
 	argp.add_argument('-r', '--retries', help='SNMP retries', type=int, default=3)
 	argp.add_argument('-o', '--output-dir', help='AP check config directory for creating nagios configs for access points', default=None)
 	argp.add_argument('--host-template', help='Nagios host template', default='generic-host')
+	argp.add_argument('--host-groups', help='Nagios host groups', default=None)
 	argp.add_argument('--service-template', help='Nagios service template', default='generic-service-perfdata')
 	argp.add_argument('--hostname-format', help='Nagios hostname format', default='ruckus-{model}-{name}.{domain}')
 	argp.add_argument('--domain', help='Domain name for Nagios hostnames', default=default_domain)
@@ -417,8 +420,8 @@ def main():
 		check.add(PerformanceContext('mem_size'))
 		check.add(nagiosplugin.ScalarContext(
 			'mem_free',
-			warning='%d:' % (config_parser.getint(args.host, 'mem_free_min_warn')),
-			critical='%d:' % (config_parser.getint(args.host, 'mem_free_min_crit')))
+			warning='%d:' % (config_parser.getfloat(args.host, 'mem_free_min_warn')),
+			critical='%d:' % (config_parser.getfloat(args.host, 'mem_free_min_crit')))
 		)
 		check.add(PerformanceContext('mem_free_percent'))
 
