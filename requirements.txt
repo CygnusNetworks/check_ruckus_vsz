@@ -1,6 +1,24 @@
 --index-url https://pypi.python.org/simple/
 
 -e .
-nagiosplugin
-pysnmp
-ipaddress
+certifi==2025.11.12
+cffi==2.0.0
+charset-normalizer==3.4.4
+check_ruckus_vsz==0.16
+configparser==7.2.0
+cryptography==46.0.3
+idna==3.11
+ipaddress==1.0.23
+nagiosplugin==1.4.0
+ply==3.11
+pyasn1==0.4.8
+pyasyncore==1.0.4
+pycparser==2.23
+pycryptodomex==3.23.0
+pysmi==1.2.1
+pysnmp==4.4.12
+pysnmp-mibs==0.1.6
+pysnmpcrypto==0.0.4
+requests==2.32.5
+setuptools==80.9.0
+urllib3==2.5.0
