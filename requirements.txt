@@ -21,4 +21,4 @@ pysnmp-mibs==0.1.6
 pysnmpcrypto==0.0.4
 requests==2.32.5
 setuptools==80.9.0
-urllib3==2.5.0
+urllib3==2.6.0
