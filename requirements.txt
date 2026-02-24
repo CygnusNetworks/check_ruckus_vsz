@@ -6,7 +6,7 @@ cffi==2.0.0
 charset-normalizer==3.4.4
 check_ruckus_vsz==0.16
 configparser==7.2.0
-cryptography==46.0.3
+cryptography==46.0.5
 idna==3.11
 ipaddress==1.0.23
 nagiosplugin==1.4.0
