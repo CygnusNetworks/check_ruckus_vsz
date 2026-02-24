@@ -1,3 +1,6 @@
+> [\!WARNING]
+> **This project is archived and no longer maintained.** It is no longer in use within our team. No further development, bug fixes, or support will be provided. Feel free to fork if you need to continue development.
+
 # Ruckus Nagios Check for Virtual Smartzone and Access Points
 
 This Nagios/Icinga Check provides the ability to query Ruckus Virtual Smartzone Gateway devices for current system status.
@@ -126,6 +129,6 @@ define service {
 # optional ap check command
 define command {
 	command_name	check_ruckus_ap
-	command_line	/usr/lib/nagios/plugins/check_ruckus_ap -C $ARG1$ -H $HOSTADDRESS$ -a $HOSTMAC_ADDRESS$
+	command_line	/usr/lib/nagios/plugins/check_ruckus_ap -C $ARG1$ -H $HOSTADDRESS$ -a $HOSTMACADDRSSS$
 }
 ```
